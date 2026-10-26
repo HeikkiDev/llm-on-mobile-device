@@ -35,4 +35,14 @@ class PromptTest {
         assertEquals("es", Languages.default(Locale.US).code)
         assertEquals("en", Languages.default(Locale.FRANCE).code)
     }
+
+    @Test
+    fun searchIgnoresCaseAndAccentsAndMatchesNativeNames() {
+        assertEquals(listOf("es"), Languages.search(" espanol ").map { it.code })
+        assertEquals(listOf("de"), Languages.search("DEUTSCH").map { it.code })
+        assertEquals(listOf("ja"), Languages.search("日本").map { it.code })
+        assertEquals(listOf("zh"), Languages.search("chinese").map { it.code })
+        assertEquals(Languages.all, Languages.search(""))
+        assertTrue(Languages.search("xyz").isEmpty())
+    }
 }

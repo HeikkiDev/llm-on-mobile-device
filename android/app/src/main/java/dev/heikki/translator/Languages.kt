@@ -1,5 +1,6 @@
 package dev.heikki.translator
 
+import java.text.Normalizer
 import java.util.Locale
 
 data class Language(val code: String, val englishName: String, val nativeName: String)
@@ -26,6 +27,16 @@ object Languages {
     )
 
     fun byCode(code: String?): Language? = all.firstOrNull { it.code == code }
+
+    /** Case- and accent-insensitive match on English name, native name or code. */
+    fun search(query: String): List<Language> {
+        val q = fold(query.trim())
+        if (q.isEmpty()) return all
+        return all.filter { l -> fold(l.englishName).contains(q) || fold(l.nativeName).contains(q) || l.code == q }
+    }
+
+    private fun fold(text: String): String =
+        Normalizer.normalize(text, Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "").lowercase(Locale.ROOT)
 
     /** English, unless the device already uses English; then Spanish. */
     fun default(locale: Locale = Locale.getDefault()): Language =
