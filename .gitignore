@@ -1,0 +1,7 @@
+# Model files (never commit; ~2.6 GB)
+*.litertlm
+*.part
+*.task
+
+# macOS
+.DS_Store
