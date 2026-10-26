@@ -1,7 +1,12 @@
 package dev.heikki.translator
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.io.RandomAccessFile
 
 class ModelDownloaderTest {
     @Test
@@ -22,5 +27,17 @@ class ModelDownloaderTest {
     fun serverErrorsAskToTryLater() {
         assertEquals("Model server unavailable, try later (HTTP 503).", httpErrorMessage(503))
         assertEquals("Download failed (HTTP 400).", httpErrorMessage(400))
+    }
+
+    @get:Rule val tmp = TemporaryFolder()
+
+    @Test
+    fun modelIsValidOnlyWithTheExactSize() {
+        val downloader = ModelDownloader(tmp.root)
+        assertFalse(downloader.isModelValid())
+        RandomAccessFile(downloader.modelFile, "rw").use { it.setLength(1024) }
+        assertFalse(downloader.isModelValid())
+        RandomAccessFile(downloader.modelFile, "rw").use { it.setLength(MODEL_SIZE_BYTES) } // sparse, no disk cost
+        assertTrue(downloader.isModelValid())
     }
 }

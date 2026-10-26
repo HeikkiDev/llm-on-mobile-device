@@ -43,5 +43,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
+    // ui-test-junit4 pulls Espresso 3.5, which crashes on API 37 (InputManager.getInstance was removed).
+    androidTestImplementation(libs.espresso.core)
     debugImplementation(libs.compose.ui.test.manifest)
 }
