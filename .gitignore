@@ -5,3 +5,12 @@
 
 # macOS
 .DS_Store
+
+# Android / Gradle
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+captures/
