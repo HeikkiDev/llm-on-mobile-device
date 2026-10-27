@@ -14,3 +14,7 @@ local.properties
 .idea/
 *.iml
 captures/
+
+# Xcode
+xcuserdata/
+DerivedData/
