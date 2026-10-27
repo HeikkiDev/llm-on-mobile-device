@@ -22,6 +22,25 @@ Two native apps in this repo: `android/` (Kotlin + Jetpack Compose) and `ios/` (
 - One state holder per app (one `AndroidViewModel`; one `@Observable` class). No DI frameworks, no clean-architecture layers, no navigation library, no single-implementation interfaces.
 - Don't add dependencies beyond those in SPEC.md. Don't invent APIs: verify against the skill and official LiteRT-LM docs.
 
+**Verifying on emulator / simulator (local only, never in CI)**
+
+Drive the real app UI, read the screen from the accessibility/UI tree (take coordinates from it, never guess them from a screenshot), and take screenshots as evidence. Uninstalling the app deletes the downloaded model; the next launch downloads it again through the app.
+
+*Android emulator* (`ADB=~/Library/Android/sdk/platform-tools/adb`; JDK from Android Studio: `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`)
+- Start: `~/Library/Android/sdk/emulator/emulator -avd <avd> -no-snapshot-save -no-boot-anim` (list AVDs with `-list-avds`), then wait until `$ADB shell getprop sys.boot_completed` is `1`. Stop with `$ADB emu kill`.
+- Install and launch: `./gradlew installDebug` in `android/`, then `$ADB shell am start -n dev.heikki.translator/.MainActivity` (`am force-stop` to restart).
+- Read the UI: `$ADB shell uiautomator dump /sdcard/ui.xml && $ADB shell cat /sdcard/ui.xml` (use `text`, `content-desc` and `bounds`).
+- Interact: `$ADB shell input tap <x> <y>`, `input text "Hello%sworld"` (`%s` is a space; tap the field first), `input keyevent KEYCODE_BACK`.
+- Screenshot: `$ADB exec-out screencap -p > file.png`. Logs: `$ADB logcat -d`.
+- Model files: `$ADB shell run-as dev.heikki.translator ls -l files` (the `.part` size shows download progress).
+- Airplane mode: `$ADB shell cmd connectivity airplane-mode enable|disable`.
+
+*iOS Simulator*
+- Build, test, run: `xcodebuild` (see `.github/workflows/ios.yml`), or Xcode's MCP server (`xcrun mcpbridge`). For the MCP, enable Xcode → Settings → Intelligence → "Allow external agents to use Xcode tools", then call `XcodeOpenWorkspace` on `ios/Translator.xcodeproj` first so Xcode asks for approval. Its `DeviceInteractionInstallAndRun`, console output and crash logs are useful.
+- Interact with [AXe](https://github.com/cameroncooke/AXe) for everything (every command needs `--udid <UDID>` and a booted simulator): `axe describe-ui` (JSON tree), `axe tap -x <x> -y <y>` or `axe tap --label "Translate"`, `axe type "<text>"` (tap the field first), `axe swipe`, `axe button home`, `axe screenshot --output file.png`. Right after a cold boot, label taps can time out; retry or use coordinates. Use `--tap-style physical` on taps (the default style may not focus a `TextEditor` or fire glass buttons). Before typing, turn off autocorrect: `xcrun simctl spawn <UDID> defaults write com.apple.Preferences KeyboardAutocorrection -bool NO` (same for `KeyboardPrediction`, `KeyboardAutocapitalization`, `KeyboardCheckSpelling`). If typing doesn't reach a field, `xcrun simctl pbcopy` and tap Paste. Check copy with `xcrun simctl pbpaste <UDID>`; Dynamic Type with `xcrun simctl ui <UDID> content_size accessibility-extra-extra-extra-large`.
+- Don't use Xcode MCP's `DeviceInteractionSynthesize` for input: it can tap (`t x y`) and wait (`w <s>`) but can't type, and it reports `Crashed` when the app is relaunched outside its session.
+- Boot / relaunch: `xcrun simctl boot <UDID> && xcrun simctl bootstatus <UDID> -b`, `xcrun simctl launch|terminate|uninstall <UDID> dev.heikki.translator`.
+
 **CI:** two workflows in `.github/workflows/` (`android.yml`, `ios.yml`) only build and run tests (SPEC.md §3.1). No release, signing or distribution steps. Keep them green.
 
 **Done means:** builds without the model present, tests pass locally and in CI, network-scope and airplane-mode checks in SPEC.md §8–§9 pass.

@@ -33,6 +33,15 @@ The model is downloaded by the app at runtime and is **never** committed to this
 - [`SPEC.md`](SPEC.md): full specification and milestones (source of truth).
 - [`AGENTS.md`](AGENTS.md): rules for coding agents.
 
+## Testing on emulator / simulator
+
+Besides unit tests, the apps are checked end to end on the Android emulator and the iOS Simulator by driving the real UI from the command line, so coding agents can do it too:
+
+- **Android:** `adb` (`uiautomator dump` to read the screen, `input tap` / `input text` to interact, `screencap` for screenshots).
+- **iOS:** [AXe](https://github.com/cameroncooke/AXe) for UI interaction (`describe-ui`, `tap`, `type`, `screenshot`), plus `xcodebuild` or Xcode's MCP server (`xcrun mcpbridge`) for building, running and logs.
+
+The app performs its own first-run model download there; nothing fetches the model separately. Details in [`AGENTS.md`](AGENTS.md).
+
 ## CI
 
 GitHub Actions build the apps and run the unit tests (`.github/workflows/android.yml`, `.github/workflows/ios.yml`). They never download the model.
