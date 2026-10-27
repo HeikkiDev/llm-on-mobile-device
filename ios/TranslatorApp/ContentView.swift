@@ -35,10 +35,14 @@ private struct DownloadView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Download the language model").font(.title2.bold())
+                    .accessibilityAddTraits(.isHeader)
                 Text("To translate offline, this app needs to download a language model once (\(formatGB(Model.sizeBytes))). After that it works without internet.")
                 Text("Wi-Fi recommended. Free space needed: about \(formatGB(Model.sizeBytes + 200_000_000)). Downloaded from Hugging Face.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                if model.lowRam {
+                    Text(lowRamWarning).foregroundStyle(.red)
+                }
                 actions
             }
             .padding(24)
@@ -93,53 +97,47 @@ private struct DownloadView: View {
 private struct TranslatorView: View {
     @Environment(TranslatorModel.self) private var model
     @State private var pickingLanguage = false
+    @ScaledMetric private var editorHeight = 140
 
     var body: some View {
         @Bindable var model = model
+        let tooLong = model.input.count > maxInputChars
         ScrollView {
             VStack(spacing: 16) {
+                if model.lowRam {
+                    Text(lowRamWarning)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 VStack(alignment: .trailing, spacing: 4) {
                     TextEditor(text: $model.input)
-                        .frame(minHeight: 140)
+                        .frame(minHeight: min(editorHeight, 220))
                         .scrollContentBackground(.hidden)
-                        .padding(12)
-                        .background(.fill.tertiary, in: .rect(cornerRadius: 20))
                         .accessibilityLabel("Text to translate")
-                    Text("\(model.input.count) / \(maxInputChars)")
+                        .padding(12)
+                        .padding(.trailing, model.input.isEmpty ? 0 : 34)
+                        .background(.fill.tertiary, in: .rect(cornerRadius: 20))
+                        .overlay(alignment: .topTrailing) {
+                            if !model.input.isEmpty {
+                                IconButton("Clear text", systemImage: "xmark.circle.fill") { model.input = "" }
+                                    .foregroundStyle(.secondary)
+                                    .padding(2)
+                            }
+                        }
+                    Text(tooLong ? "Too long: \(model.input.count) / \(maxInputChars) characters" : "\(model.input.count) / \(maxInputChars)")
                         .font(.caption)
-                        .foregroundStyle(model.input.count > maxInputChars ? .red : .secondary)
+                        .foregroundStyle(tooLong ? .red : .secondary)
+                        .accessibilityLabel("\(model.input.count) of \(maxInputChars) characters")
                 }
                 if model.translating || !model.output.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(model.output.isEmpty ? " " : model.output)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        if model.translating { ProgressView() }
-                    }
-                    .padding(20)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 24))
+                    OutputCard()
                 }
             }
             .padding()
         }
-        .safeAreaInset(edge: .bottom) {
-            GlassEffectContainer {
-                HStack {
-                    Button("To: \(model.target.englishName)") { pickingLanguage = true }
-                        .buttonStyle(.glass)
-                    Spacer()
-                    if model.translating {
-                        Button("Stop") { model.stop() }.buttonStyle(.glassProminent)
-                    } else {
-                        Button("Translate") { model.translate() }
-                            .buttonStyle(.glassProminent)
-                            .disabled(!model.canTranslate)
-                    }
-                }
-                .controlSize(.large)
-                .padding()
-            }
-        }
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) { controls }
         .sheet(isPresented: $pickingLanguage) {
             LanguagePicker(selection: $model.target)
         }
@@ -148,6 +146,109 @@ private struct TranslatorView: View {
         } message: {
             Text(model.error ?? "")
         }
+        .onChange(of: model.translating) { wasTranslating, translating in
+            // Announce once when finished, not per streamed token.
+            if wasTranslating, !translating, !model.output.isEmpty {
+                AccessibilityNotification.Announcement(model.output).post()
+            }
+        }
+    }
+
+    private var controls: some View {
+        GlassEffectContainer {
+            // Side by side when it fits; stacked at the largest accessibility text sizes.
+            ViewThatFits(in: .horizontal) {
+                HStack { languageButton; Spacer(); translateButton }
+                VStack(alignment: .leading) { languageButton; translateButton }
+            }
+            .controlSize(.large)
+            .padding()
+        }
+    }
+
+    private var languageButton: some View {
+        Button { pickingLanguage = true } label: {
+            Text("To: \(model.target.englishName)").lineLimit(1)
+        }
+        .buttonStyle(.glass)
+        .accessibilityLabel("Translate to \(model.target.englishName)")
+        .accessibilityHint("Change language")
+    }
+
+    @ViewBuilder private var translateButton: some View {
+        if model.translating {
+            Button("Stop") { model.stop() }.buttonStyle(.glassProminent)
+        } else {
+            Button("Translate") { model.translate() }
+                .buttonStyle(.glassProminent)
+                .disabled(!model.canTranslate)
+        }
+    }
+}
+
+private struct OutputCard: View {
+    @Environment(TranslatorModel.self) private var model
+    @State private var copied = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(model.target.englishName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+            if model.translating && model.output.isEmpty {
+                ProgressView().accessibilityLabel("Translating")
+            }
+            Text(model.output)
+                .font(.title3)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel(model.translating ? "Translating" : "\(model.target.englishName) translation: \(model.output)")
+            if !model.translating && !model.output.isEmpty {
+                HStack {
+                    Spacer()
+                    IconButton("Copy translation", systemImage: copied ? "checkmark" : "doc.on.doc") { copy() }
+                    IconButton("Clear", systemImage: "xmark") { model.clear() }
+                }
+                .font(.title3)
+            }
+        }
+        .padding(20)
+        .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .sensoryFeedback(.success, trigger: copied) { _, new in new }
+    }
+
+    private func copy() {
+        UIPasteboard.general.string = model.output
+        AccessibilityNotification.Announcement("Copied").post()
+        copied = true
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            copied = false
+        }
+    }
+}
+
+/// Icon-only button with a 44 pt touch target.
+private struct IconButton: View {
+    let title: String
+    let systemImage: String
+    let action: () -> Void
+
+    init(_ title: String, systemImage: String, action: @escaping () -> Void) {
+        self.title = title
+        self.systemImage = systemImage
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.borderless)
     }
 }
 
@@ -157,8 +258,9 @@ private struct LanguagePicker: View {
     @State private var query = ""
 
     var body: some View {
+        let results = Languages.search(query)
         NavigationStack {
-            List(Languages.search(query)) { language in
+            List(results) { language in
                 Button {
                     selection = language
                     dismiss()
@@ -173,6 +275,10 @@ private struct LanguagePicker: View {
                     }
                 }
                 .tint(.primary)
+                .accessibilityAddTraits(language == selection ? .isSelected : [])
+            }
+            .overlay {
+                if results.isEmpty { ContentUnavailableView("No languages found", systemImage: "magnifyingglass") }
             }
             .searchable(text: $query, prompt: "Search languages")
             .navigationTitle("Translate to")

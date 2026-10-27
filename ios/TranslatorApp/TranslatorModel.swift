@@ -4,7 +4,9 @@ import Observation
 import UIKit
 
 let maxInputChars = 1000
+let lowRamWarning = "This model is recommended for phones with 8 GB RAM or more."
 private let maxNumTokens = 4096
+private let lowRamBytes: UInt64 = 7_500_000_000
 private let targetKey = "target"
 
 enum ModelStatus: Equatable {
@@ -23,6 +25,7 @@ enum ModelStatus: Equatable {
 @Observable @MainActor
 final class TranslatorModel {
     static let backend: Backend = .cpu()
+    let lowRam = ProcessInfo.processInfo.physicalMemory < lowRamBytes
 
     private(set) var status: ModelStatus = .missing(partialBytes: 0) {
         didSet {
@@ -174,6 +177,8 @@ final class TranslatorModel {
                 self.conversation = conversation
                 if stopRequested { return }
                 for try await chunk in conversation.sendMessageStream(Message(text)) {
+                    // cancel() may not interrupt prefill; drop anything that arrives after Stop.
+                    if stopRequested { break }
                     for case .text(let piece) in chunk.contents { output += piece }
                 }
             } catch {
