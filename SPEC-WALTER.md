@@ -46,7 +46,7 @@ Design principles (in order): **big and obvious → few taps → fast feedback �
 | Android `applicationId` | `dev.heikki.translator` | **`dev.heikki.walter`** |
 | Android code `namespace` / package | `dev.heikki.translator` | unchanged (`dev.heikki.translator`) — avoids renaming every file; only `applicationId` changes |
 | iOS bundle ID | `dev.heikki.translator` | **`dev.heikki.walter`** |
-| App name (launcher / home screen) | "Translate" | **"Walter"** (placeholder, §12) |
+| App name (launcher / home screen) | "Translate" | **"Traductor Walter"** |
 | Xcode target / scheme | `Translator` | unchanged (`Translator`) |
 
 Consequences:
@@ -71,7 +71,7 @@ From the Gemma 4 model card ([google/gemma-4-E2B-it](https://huggingface.co/goog
 - iOS: `EngineConfig(modelPath:, backend: .cpu(), audioBackend: .cpu(), maxNumTokens: 4096, cacheDir:)`.
 - Audio content: Android `Content.AudioBytes(wavBytes)` (or `Content.AudioFile(path)`); iOS `Content.audioFile(path)` (the Swift docs only show the file variant). Write each recording as a **16 kHz, mono, 16-bit PCM WAV** to the cache dir, pass it, **delete it right after inference**. Milestone W1 must confirm the runtime accepts this WAV format on both platforms (the litert-community card's NPU example uses "a short 16 kHz mono WAV"); if not, adapt the encoding to what the runtime documents — don't guess.
 - Keep **single-shot conversations** (fresh `Conversation` per turn, no history in the prompt), thinking off, greedy sampling — as in SPEC.md.
-- **Backend:** still CPU by default. Conversational latency now matters more than in v1, so W1 measures **CPU vs GPU** (and MTP speculative decoding, GPU-only) for an audio turn on Walter's phone and the owner picks one constant. Target: **< 4 s from end of speech to start of spoken output** for a 5-second sentence. Not a hard gate.
+- **Backend:** still CPU by default. Conversational latency now matters more than in v1, so W1 measures **CPU vs GPU** (and MTP speculative decoding, GPU-only) for an audio turn on Walter's phone and the owner picks one constant. Target: **< 4 s from end of recording (auto-stop or tap) to start of spoken output** for a 5-second sentence; the silence wait (§4.1) comes on top, and tapping to stop skips it. Not a hard gate.
 - Memory: the audio encoder adds memory while loaded. Re-measure peak memory in W1 and keep the low-RAM warning from SPEC.md §4.5.
 
 ### 3.3 Prompts (all in `Prompt.kt` / `Prompt.swift`, pure functions, unit-tested)
@@ -112,7 +112,7 @@ The UI can't know the direction in advance; it shows the result in a bubble on t
 ## 4. Voice I/O (new)
 
 ### 4.1 Recording ("tap to talk, auto-stop on silence")
-- **Tap** a mic button → haptic + short visual "Escuchando…" + live level meter → speak → recording **stops automatically after ~1.2 s of silence** following detected speech, or when the user **taps again**, or at 30 s.
+- **Tap** a mic button → haptic + short visual "Escuchando…" + live level meter → speak → recording **stops automatically after 2.5 s of silence** (constant, tunable between 2 and 3 s) following detected speech, so natural pauses mid-sentence don't end the turn, or when the user **taps again**, or at 30 s.
 - If no speech is detected within 8 s → cancel silently with "No he oído nada" and no inference.
 - Silence detection: a tiny energy-based VAD in the recorder (RMS per 30 ms frame vs an adaptive noise floor measured in the first ~300 ms; "speech" when RMS > floor × factor). No ML VAD, no extra library. Construction sites are noisy: the factor and timeouts are constants, tuned in W5; **tap-to-stop always works** regardless of VAD.
 - Trim leading/trailing silence before sending (fewer audio tokens = faster).
@@ -260,9 +260,9 @@ Android (`android/app/src/main/java/dev/heikki/translator/`):
 - `Prompt.kt` — prompts A/B/C + parsers (§3.3).
 - **`AudioRecorder.kt`** (new) — `AudioRecord` → VAD → WAV bytes. No state beyond a recording session; reports level and result via callback/`Flow`.
 - **`Speaker.kt`** (new) — thin `TextToSpeech` wrapper: `init`, `hasOfflineVoice(lang)`, `speak(text, lang, onDone)`, `stop()`, `shutdown()`.
-- `res/values/strings.xml` — Spanish strings (only `app_name` = "Walter" plus whatever exists today).
+- `res/values/strings.xml` — Spanish strings (only `app_name` = "Traductor Walter" plus whatever exists today).
 
-iOS (`ios/TranslatorApp/`): `TranslatorApp.swift`, `TranslatorModel.swift` (only `@Observable` state holder), `ModelDownloader.swift`, `ContentView.swift`, `Languages.swift`, `Prompt.swift`, **`AudioRecorder.swift`** (new), **`Speaker.swift`** (new). Info.plist: `NSMicrophoneUsageDescription` (Spanish), `CFBundleDisplayName = Walter`, development region `es`.
+iOS (`ios/TranslatorApp/`): `TranslatorApp.swift`, `TranslatorModel.swift` (only `@Observable` state holder), `ModelDownloader.swift`, `ContentView.swift`, `Languages.swift`, `Prompt.swift`, **`AudioRecorder.swift`** (new), **`Speaker.swift`** (new). Info.plist: `NSMicrophoneUsageDescription` (Spanish), `CFBundleDisplayName = Traductor Walter`, development region `es`.
 
 Still: no DI, no navigation library, no extra dependencies (recording, VAD, WAV and TTS use platform APIs only).
 
@@ -296,7 +296,7 @@ Manual on device with model (owner + agent on emulator/simulator where possible)
 - Language persists across app kill/relaunch; recents order correct.
 - No-voice language (e.g. Pashto) shows the large-text fallback without errors.
 - **Airplane mode: full conversation (record, translate, speak, detect) works.**
-- Latency per turn recorded (end of speech → first spoken word) for CPU and GPU.
+- Latency per turn recorded (end of recording → first spoken word) for CPU and GPU.
 
 Acceptance criteria:
 1. Everything in SPEC.md §9 acceptance still holds, except the permission list (now three) and the UI layout.
@@ -324,7 +324,7 @@ Acceptance criteria:
 - **Urdu/Hindi confusion** in detection (§5.3 step 6).
 - **TTS reading the Spanish translation**: Gemma may output numbers, measurements or abbreviations ("3x4 m"); acceptable for v1, revisit in W5.
 - **Wrong-direction typed translations** in writing mode (prompt C) — minor, cosmetic.
-- **Open questions for the owner:** final app name and icon ("Walter"?); Walter's phone model (RAM, Android version ≥ 8.0); whether to keep the coworker's original transcript visible in bubbles (default: yes, small); whether "Habla él" should auto-arm after Walter's turn in a quiet place (default: no).
+- **Open questions for the owner:** app icon; Walter's phone model (RAM, Android version ≥ 8.0); whether to keep the coworker's original transcript visible in bubbles (default: yes, small); whether "Habla él" should auto-arm after Walter's turn in a quiet place (default: no).
 
 ## 12. References (in addition to SPEC.md §12)
 
