@@ -1,5 +1,9 @@
 # llm-on-mobile-device
 
+| Android | iOS |
+|:---:|:---:|
+| <img src="docs/screenshot-android.png" alt="Android app translating an English sentence to Spanish" width="300"> | <img src="docs/screenshot-ios.png" alt="iOS app translating an English sentence to Spanish" width="300"> |
+
 A minimalist **on-device translator** for Android and iOS. It runs **Gemma 4 E2B** locally with [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) (CPU backend, thinking off).
 
 - Type or paste text in any language, pick a target language, get a streamed translation.
