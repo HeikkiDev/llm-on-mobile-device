@@ -24,9 +24,47 @@ A minimalist **on-device translator** for Android and iOS. It runs **Gemma 4 E2B
 | Model | [`litert-community/gemma-4-E2B-it-litert-lm`](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm) → `gemma-4-E2B-it.litertlm` |
 | Size | 2,588,147,712 bytes |
 | SHA-256 | `181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c` |
-| Licence | Apache-2.0 (not gated). Gemma is provided by Google. |
+| Licence | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) (not gated). Gemma is provided by Google. |
 
 The model is downloaded by the app at runtime and is **never** committed to this repo or bundled in the apps.
+
+## First run
+
+1. Open the app. It shows a download screen (2.6 GB, Wi-Fi recommended, ~2.8 GB free space needed).
+2. Tap **Download** and keep the app open. On mobile data it asks first. Cancelled or interrupted downloads resume where they stopped.
+3. The file is checked (size and SHA-256), loaded, and the translator appears. Later launches go straight to the translator, fully offline.
+
+The only network request the apps ever make is that download (`ModelDownloader.kt` / `ModelDownloader.swift`). Your text is never sent anywhere and is not stored; only the last target language is remembered.
+
+## Build and run
+
+**Android** (Android Studio, or the command line with JDK 17+ and the Android SDK):
+
+```sh
+cd android
+./gradlew assembleDebug        # build
+./gradlew testDebugUnitTest    # unit tests
+./gradlew installDebug         # install on a connected device or emulator
+```
+
+**iOS** (Xcode 27 on Apple Silicon): open `ios/Translator.xcodeproj`, pick the `Translator` scheme and run. From the command line:
+
+```sh
+cd ios
+xcodebuild -scheme Translator -destination 'generic/platform=iOS Simulator' build
+xcodebuild test -scheme Translator -destination 'platform=iOS Simulator,name=<iPhone simulator>' CODE_SIGNING_ALLOWED=NO
+```
+
+To run on a physical iPhone, set your own team and bundle ID (`dev.heikki.translator` is a placeholder) in the target's Signing settings.
+
+## Known limits
+
+- **Big first download:** 2.6 GB from Hugging Face, foreground only (keep the app open). If Hugging Face removes or gates the file, new installs can't download it; installed apps keep working.
+- **Memory:** 8 GB RAM recommended; on smaller phones translation can be slow or the app may be closed by the system. A warning is shown.
+- **CPU only:** the apps use the LiteRT-LM CPU backend; GPU is not enabled.
+- **Input:** up to 1,000 characters per translation; each translation is independent (no conversation history).
+- **Quality:** a small on-device model; translations can be imperfect, especially for long or idiomatic text.
+- **iOS:** LiteRT-LM for Swift is an early preview; the simulator build is arm64 only (Apple Silicon Macs).
 
 ## Docs
 

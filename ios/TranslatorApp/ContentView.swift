@@ -44,6 +44,7 @@ private struct DownloadView: View {
                     Text(lowRamWarning).foregroundStyle(.red)
                 }
                 actions
+                AboutText()
             }
             .padding(24)
             .glassEffect(.regular, in: .rect(cornerRadius: 24))
@@ -133,6 +134,7 @@ private struct TranslatorView: View {
                 if model.translating || !model.output.isEmpty {
                     OutputCard()
                 }
+                AboutText()
             }
             .padding()
         }
@@ -226,6 +228,16 @@ private struct OutputCard: View {
             try? await Task.sleep(for: .seconds(1.5))
             copied = false
         }
+    }
+}
+
+/// Model credit (§11). Plain text: the licence link lives in the README, so the app holds no URL but the model's.
+private struct AboutText: View {
+    var body: some View {
+        Text("Powered by Gemma 4 E2B from Google (Apache-2.0 licence), running on this device.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

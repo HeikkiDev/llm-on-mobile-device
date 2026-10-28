@@ -74,6 +74,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 
 const val LOW_RAM_WARNING = "This model is recommended for phones with 8 GB RAM or more."
+const val ABOUT_TEXT = "Powered by Gemma 4 E2B from Google (Apache-2.0 licence), running on this device."
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -175,6 +176,7 @@ private fun TranslatorContent(state: UiState, viewModel: TranslatorViewModel, sn
                 onClear = viewModel::clear,
             )
         }
+        Text(ABOUT_TEXT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 
     if (pickingLanguage) {
@@ -321,6 +323,7 @@ private fun DownloadContent(state: UiState, viewModel: TranslatorViewModel) {
             }
             ModelStatus.Loading, ModelStatus.Ready -> Unit
         }
+        Text(ABOUT_TEXT, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 
     if (status == ModelStatus.NeedsCellularConsent) {
