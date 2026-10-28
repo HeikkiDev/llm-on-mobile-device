@@ -104,7 +104,7 @@ class TranslatorViewModel(app: Application) : AndroidViewModel(app) {
                 showMissing()
                 throw e
             } catch (e: Exception) {
-                setStatus(ModelStatus.Error(e.message ?: "Download failed. Try again."))
+                setStatus(ModelStatus.Error(e.message ?: "La descarga ha fallado. Vuelve a intentarlo."))
             }
         }
     }
@@ -137,7 +137,7 @@ class TranslatorViewModel(app: Application) : AndroidViewModel(app) {
                 try {
                     loadEngine()
                 } catch (e: Exception) {
-                    setStatus(ModelStatus.Error(e.message ?: "Could not load the model.", loadFailed = true))
+                    setStatus(ModelStatus.Error(e.message ?: "No se ha podido cargar el modelo.", loadFailed = true))
                     return@withLock
                 }
                 setStatus(ModelStatus.Ready)
@@ -202,7 +202,7 @@ class TranslatorViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (!stopRequested) _state.update { it.copy(error = e.message ?: "Translation failed.") }
+                if (!stopRequested) _state.update { it.copy(error = e.message ?: "No se ha podido traducir.") }
             } finally {
                 streaming = false
                 stopRequested = false

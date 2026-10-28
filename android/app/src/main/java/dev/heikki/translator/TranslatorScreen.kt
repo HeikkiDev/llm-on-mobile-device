@@ -73,8 +73,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 
-const val LOW_RAM_WARNING = "This model is recommended for phones with 8 GB RAM or more."
-const val ABOUT_TEXT = "Powered by Gemma 4 E2B from Google (Apache-2.0 licence), running on this device."
+const val LOW_RAM_WARNING = "Este modelo está recomendado para móviles con 8 GB de RAM o más."
+const val ABOUT_TEXT = "Funciona con Gemma 4 E2B de Google (licencia Apache-2.0), dentro de este móvil."
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -90,14 +90,14 @@ fun TranslatorScreen(viewModel: TranslatorViewModel = viewModel()) {
     }
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = { LargeFlexibleTopAppBar(title = { Text("Translate") }, scrollBehavior = scrollBehavior) },
+        topBar = { LargeFlexibleTopAppBar(title = { Text("Traductor Walter") }, scrollBehavior = scrollBehavior) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding()) {
             when (state.modelStatus) {
                 ModelStatus.Ready -> TranslatorContent(state, viewModel, snackbar)
                 ModelStatus.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Busy("Loading model…")
+                    Busy("Cargando el modelo…")
                 }
                 else -> DownloadContent(state, viewModel)
             }
@@ -275,15 +275,15 @@ private fun DownloadContent(state: UiState, viewModel: TranslatorViewModel) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Download the language model", style = MaterialTheme.typography.headlineSmall)
+        Text("Descarga el modelo de idiomas", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "To translate offline, this app needs to download a language model once " +
-                "(${formatGb(MODEL_SIZE_BYTES)}). After that it works without internet.",
+            "Para traducir sin internet, la app necesita descargar un modelo de idiomas una sola vez " +
+                "(${formatGb(MODEL_SIZE_BYTES)}). Después funciona sin conexión.",
             style = MaterialTheme.typography.bodyLarge,
         )
         Text(
-            "Wi-Fi recommended. Free space needed: about ${formatGb(requiredFreeBytes(0))}. " +
-                "Downloaded from Hugging Face.",
+            "Mejor con wifi. Espacio libre necesario: unos ${formatGb(requiredFreeBytes(0))}. " +
+                "Se descarga de Hugging Face.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -295,9 +295,9 @@ private fun DownloadContent(state: UiState, viewModel: TranslatorViewModel) {
             is ModelStatus.Missing, ModelStatus.NeedsCellularConsent -> {
                 val partial = (status as? ModelStatus.Missing)?.partialBytes ?: 0L
                 val label = if (partial > 0) {
-                    "Resume (${formatGb(partial)} of ${formatGb(MODEL_SIZE_BYTES)})"
+                    "Continuar (${formatGb(partial)} de ${formatGb(MODEL_SIZE_BYTES)})"
                 } else {
-                    "Download"
+                    "Descargar"
                 }
                 Button(onClick = viewModel::download, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) { Text(label) }
             }
@@ -306,19 +306,19 @@ private fun DownloadContent(state: UiState, viewModel: TranslatorViewModel) {
                     progress = { status.bytes.toFloat() / status.total },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text("${formatGb(status.bytes)} of ${formatGb(status.total)}")
-                Text("Keep the app open until the download finishes.", style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = viewModel::cancelDownload, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+                Text("${formatGb(status.bytes)} de ${formatGb(status.total)}")
+                Text("Deja la app abierta hasta que termine la descarga.", style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = viewModel::cancelDownload, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
             }
-            ModelStatus.Verifying -> Busy("Verifying download…")
+            ModelStatus.Verifying -> Busy("Comprobando la descarga…")
             is ModelStatus.Error -> {
                 Text(status.message, color = MaterialTheme.colorScheme.error)
                 if (status.loadFailed) {
                     Button(onClick = viewModel::deleteModelAndDownloadAgain, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) {
-                        Text("Delete and download again")
+                        Text("Borrar y descargar de nuevo")
                     }
                 } else {
-                    Button(onClick = viewModel::download, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) { Text("Retry") }
+                    Button(onClick = viewModel::download, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) { Text("Reintentar") }
                 }
             }
             ModelStatus.Loading, ModelStatus.Ready -> Unit
@@ -329,10 +329,10 @@ private fun DownloadContent(state: UiState, viewModel: TranslatorViewModel) {
     if (status == ModelStatus.NeedsCellularConsent) {
         AlertDialog(
             onDismissRequest = viewModel::waitForWifi,
-            title = { Text("Use mobile data?") },
-            text = { Text("This is a ${formatGb(MODEL_SIZE_BYTES)} download. Use mobile data?") },
-            confirmButton = { TextButton(onClick = viewModel::acceptCellular) { Text("Download anyway") } },
-            dismissButton = { TextButton(onClick = viewModel::waitForWifi) { Text("Wait for Wi-Fi") } },
+            title = { Text("¿Usar datos móviles?") },
+            text = { Text("Son ${formatGb(MODEL_SIZE_BYTES)} de descarga. ¿Usar datos móviles?") },
+            confirmButton = { TextButton(onClick = viewModel::acceptCellular) { Text("Descargar igualmente") } },
+            dismissButton = { TextButton(onClick = viewModel::waitForWifi) { Text("Esperar al wifi") } },
         )
     }
 }

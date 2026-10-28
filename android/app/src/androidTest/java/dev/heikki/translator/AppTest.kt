@@ -50,8 +50,8 @@ class AppTest {
     @Test
     fun showsDownloadStateWithoutModel() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            compose.onNodeWithText("Download the language model").assertIsDisplayed()
-            compose.onNodeWithText("Download").assertIsDisplayed()
+            compose.onNodeWithText("Descarga el modelo de idiomas").assertIsDisplayed()
+            compose.onNodeWithText("Descargar").assertIsDisplayed()
         }
     }
 
@@ -59,7 +59,7 @@ class AppTest {
     fun wrongSizeModelStillShowsDownloadState() {
         File(files, MODEL_FILE).writeBytes(ByteArray(1024))
         ActivityScenario.launch(MainActivity::class.java).use {
-            compose.onNodeWithText("Download").assertIsDisplayed()
+            compose.onNodeWithText("Descargar").assertIsDisplayed()
         }
     }
 
