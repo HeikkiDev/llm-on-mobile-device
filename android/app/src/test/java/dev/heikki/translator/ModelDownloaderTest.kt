@@ -25,8 +25,8 @@ class ModelDownloaderTest {
 
     @Test
     fun serverErrorsAskToTryLater() {
-        assertEquals("Model server unavailable, try later (HTTP 503).", httpErrorMessage(503))
-        assertEquals("Download failed (HTTP 400).", httpErrorMessage(400))
+        assertEquals("El servidor del modelo no está disponible. Prueba más tarde (HTTP 503).", httpErrorMessage(503))
+        assertEquals("La descarga ha fallado (HTTP 400).", httpErrorMessage(400))
     }
 
     @get:Rule val tmp = TemporaryFolder()

@@ -65,6 +65,7 @@ From the Gemma 4 model card ([google/gemma-4-E2B-it](https://huggingface.co/goog
 - Prompt order: **text first, audio after** the text in the same user message.
 - The litert-community card: "the Vision and Audio models are loaded on demand to further reduce memory consumption".
 - **No per-language audio accuracy table is published.** Urdu/Punjabi/Pashto/Sindhi speech quality is **unverified** → milestone W5 is a real-world evaluation with the owner (§10).
+- **W1 findings (Android emulator, CPU, LiteRT-LM 0.18.1):** 16 kHz mono PCM16 WAV via `Content.AudioBytes` works. Detection from clean clips was correct for en/es/hi/ro (~1 s); a voice turn takes ~2–2.5 s to the final translation; app PSS during a turn ≈ 1.6 GB. With a robotic input voice the model once looped forever on one syllable → the runaway guard in §3.4. The emulator's host-mic bridge drops audio (clips arrive smeared with gaps), so recognition quality must be judged on a real phone (W5). GPU vs CPU is still to be measured on Walter's phone.
 
 ### 3.2 Engine config (override of SPEC.md §1 non-goal "never set audioBackend")
 - Android: `EngineConfig(modelPath, backend = Backend.CPU(), audioBackend = Backend.CPU(), maxNumTokens = 4096, cacheDir = …)`. `visionBackend` stays unset.
@@ -76,7 +77,7 @@ From the Gemma 4 model card ([google/gemma-4-E2B-it](https://huggingface.co/goog
 
 ### 3.3 Prompts (all in `Prompt.kt` / `Prompt.swift`, pure functions, unit-tested)
 
-All prompts reference languages by their **English name** (what the model understands best), e.g. `Urdu`, `Punjabi (Shahmukhi script, as used in Pakistan)`.
+All prompts reference languages by their **English name** (what the model understands best), e.g. `Urdu`, `Punjabi`; a separate `scriptHint` (e.g. `Write Sindhi in Arabic script.`) is appended to voice and text prompts when the target needs a specific script.
 
 **A. Voice turn, known languages (both directions)** — uses the card's official AST template so the model gets a format it was trained on. User message = this text, then the audio:
 ```
@@ -94,7 +95,7 @@ Identify the language spoken in this audio.
 Answer with ONLY one code from this list, nothing else: {CODES}.
 If the language is not in the list, answer: unknown
 ```
-`{CODES}` = all codes from §6 (e.g. `ur, pa-Arab, ps, sd, hi, …`). Parser `parseDetectedLanguage(raw) -> Language?`: trim, lowercase, strip punctuation/quotes, take the first token, look it up (also accept English names as a fallback). `unknown` / anything else → `null`. Unit-tested.
+`{CODES}` = all codes from §6 plus `es` (e.g. `ur, pa-Arab, ps, sd, hi, …, es`); if `es` comes back, Walter is told "Eso parece español. Pídele a tu compañero que diga una frase." and nothing is saved. Parser `parseDetectedLanguage(raw) -> Language?`: trim, lowercase, strip punctuation/quotes, take the first token, look it up (also accept English names as a fallback). `unknown` / anything else → `null`. Unit-tested.
 
 **C. Typed text (secondary mode)** — bidirectional with one prompt:
 ```
@@ -108,17 +109,18 @@ The UI can't know the direction in advance; it shows the result in a bubble on t
 ### 3.4 Output limits
 - Recording hard cap: **30 s** (model limit). At 25 s show "Termina la frase…", at 30 s stop automatically and process.
 - Typed input limit stays 1,000 characters.
+- **Runaway guard:** while streaming, if the output exceeds 1,500 characters or its last 80 characters are one short pattern (period 1–20) repeating, cancel the inference (`cancelProcess()`) and show "No he entendido, repite más despacio" with "Reintentar". `isRunaway(text)` is a pure, unit-tested function.
 
 ## 4. Voice I/O (new)
 
 ### 4.1 Recording ("tap to talk, auto-stop on silence")
 - **Tap** a mic button → haptic + short visual "Escuchando…" + live level meter → speak → recording **stops automatically after 2.5 s of silence** (constant, tunable between 2 and 3 s) following detected speech, so natural pauses mid-sentence don't end the turn, or when the user **taps again**, or at 30 s.
 - If no speech is detected within 8 s → cancel silently with "No he oído nada" and no inference.
-- Silence detection: a tiny energy-based VAD in the recorder (RMS per 30 ms frame vs an adaptive noise floor measured in the first ~300 ms; "speech" when RMS > floor × factor). No ML VAD, no extra library. Construction sites are noisy: the factor and timeouts are constants, tuned in W5; **tap-to-stop always works** regardless of VAD.
+- Silence detection: a tiny energy-based VAD in the recorder (RMS per 30 ms frame vs an adaptive noise floor that follows the quietest frames and only adapts on non-speech frames; "speech" when 3 consecutive frames have RMS > max(floor × factor, minimum)). No ML VAD, no extra library. Construction sites are noisy: the factor and timeouts are constants, tuned in W5; **tap-to-stop always works** regardless of VAD.
 - Trim leading/trailing silence before sending (fewer audio tokens = faster).
 - Android: `AudioRecord` (`MediaRecorder.AudioSource.VOICE_RECOGNITION`, 16 kHz, mono, `ENCODING_PCM_16BIT`) on a background thread; write the 44-byte WAV header + PCM. Runtime permission `RECORD_AUDIO` requested on the **first mic tap** (never at launch), with a Spanish rationale; if permanently denied, show a button to open app settings.
 - iOS: `AVAudioEngine` input tap → `AVAudioConverter` to 16 kHz mono Int16 → WAV via `AVAudioFile`. `AVAudioSession` category `.playAndRecord`, options `[.defaultToSpeaker, .allowBluetoothHFP]`, mode `.default`. `NSMicrophoneUsageDescription` in Spanish ("Para escuchar lo que dices y traducirlo. El audio nunca sale del teléfono.").
-- Recording and speaking are mutually exclusive: **tapping a mic while the phone is speaking stops the speech immediately** and starts recording (barge-in), so TTS is never recorded.
+- Recording and speaking are mutually exclusive: **tapping the other side's mic while the phone is speaking stops the speech immediately** and starts recording (barge-in), so TTS is never recorded. Tapping the button of the side that is being spoken just stops the speech.
 - Audio is **never persisted**: the WAV lives in the cache dir only until inference finishes (deleted in `finally`).
 
 ### 4.2 Speaking ("auto speak-aloud")
@@ -190,7 +192,7 @@ Triggered from the "Choose language" state or the 🎤? button next to the langu
 
 ### 5.4 Language picker
 - Bottom sheet / sheet with search field (`searchable`), matching **Spanish name, English name, native name or code**, accent-insensitive (reuse current `search`).
-- Sections: **Recientes** (last 5 used, most recent first) then **Todos** (alphabetical by Spanish name).
+- Sections: **Parecidos** (only when opened from "Cambiar" after a detection: languages often confused with the detected one, from `Languages.related`, e.g. Urdu ↔ Hindi ↔ Punjabi ↔ Sindhi), **Recientes** (last 5 used, most recent first) then **Todos** (alphabetical by Spanish name).
 - Each row: native name (large, own script) + Spanish name + 🔇 if no offline voice on this device.
 - Selecting a language saves it and closes the sheet.
 
@@ -203,15 +205,15 @@ Triggered from the "Choose language" state or the 🎤? button next to the langu
 
 Walter's language is fixed: **Spanish (`es`, voice `es-ES`)**. The coworker list below is the default set; Gemma 4 claims 35+ languages out of the box and 140+ in pre-training but **Google publishes no per-language list** for text or audio, so quality marks are owner-verified in W5 and the list may be trimmed. Codes are BCP-47; `voice` is the locale requested from the TTS engine.
 
-`Language(code, spanishName, englishName /*used in prompts*/, nativeName, voiceLocale, speakWord /*"speak" in that language, shown on "Habla él"*/)`
+`Language(code, spanishName, englishName /*used in prompts*/, nativeName, voiceLocale, speakWord /*"speak" in that language, shown on "Habla él"*/, scriptHint /*optional output-script instruction, §3.3*/)`
 
 | Group | Code | Español | English (prompt) | Native | Voice locale |
 |---|---|---|---|---|---|
 | South Asia | ur | Urdu | Urdu | اردو | ur-PK |
-| | pa-Arab | Panyabí (Pakistán) | Punjabi (Shahmukhi script, as used in Pakistan) | پنجابی | pa-PK¹ |
-| | pa | Panyabí (India) | Punjabi (Gurmukhi script) | ਪੰਜਾਬੀ | pa-IN |
+| | pa-Arab | Panyabí (Pakistán) | Punjabi (+ Shahmukhi script hint) | پنجابی | pa-PK¹ |
+| | pa | Panyabí (India) | Punjabi (+ Gurmukhi script hint) | ਪੰਜਾਬੀ | pa-IN |
 | | ps | Pastún | Pashto | پښتو | ps-AF¹ |
-| | sd | Sindi | Sindhi (Arabic script) | سنڌي | sd-PK¹ |
+| | sd | Sindi | Sindhi (+ Arabic script hint) | سنڌي | sd-PK¹ |
 | | hi | Hindi | Hindi | हिन्दी | hi-IN |
 | | bn | Bengalí | Bengali | বাংলা | bn-BD |
 | | ne | Nepalí | Nepali | नेपाली | ne-NP |

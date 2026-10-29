@@ -16,6 +16,12 @@ class MainActivity : ComponentActivity() {
         setContent { TranslatorTheme { TranslatorScreen(viewModel) } }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Voices may have been installed and the volume changed while away.
+        viewModel.refreshDevice()
+    }
+
     @Suppress("DEPRECATION")
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
