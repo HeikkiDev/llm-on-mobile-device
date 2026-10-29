@@ -26,8 +26,8 @@ private const val BUFFER_BYTES = 1 shl 20
 private const val TIMEOUT_MS = 30_000
 private const val PROGRESS_INTERVAL_MS = 500L
 
-const val NO_CONNECTION = "No connection. Check your internet and try again."
-const val CORRUPTED = "Download corrupted, try again."
+const val NO_CONNECTION = "Sin conexión. Revisa internet y vuelve a intentarlo."
+const val CORRUPTED = "La descarga está dañada. Vuelve a intentarlo."
 
 class DownloadException(message: String) : Exception(message)
 
@@ -46,8 +46,8 @@ fun requiredFreeBytes(downloadedBytes: Long): Long =
     MODEL_SIZE_BYTES - downloadedBytes + FREE_SPACE_MARGIN_BYTES
 
 fun httpErrorMessage(code: Int): String = when (code) {
-    403, 404, 410, 429, in 500..599 -> "Model server unavailable, try later (HTTP $code)."
-    else -> "Download failed (HTTP $code)."
+    403, 404, 410, 429, in 500..599 -> "El servidor del modelo no está disponible. Prueba más tarde (HTTP $code)."
+    else -> "La descarga ha fallado (HTTP $code)."
 }
 
 fun formatGb(bytes: Long): String = String.format(Locale.US, "%.1f GB", bytes / 1e9)
@@ -80,7 +80,7 @@ class ModelDownloader(dir: File) {
 
         val needed = requiredFreeBytes(done)
         if (partFile.parentFile!!.usableSpace < needed) {
-            throw DownloadException("Not enough space. Free up about ${formatGb(needed)} and try again.")
+            throw DownloadException("No hay espacio suficiente. Libera unos ${formatGb(needed)} y vuelve a intentarlo.")
         }
 
         if (done < MODEL_SIZE_BYTES) {
@@ -139,7 +139,7 @@ class ModelDownloader(dir: File) {
                 throw DownloadException(CORRUPTED)
             }
         }
-        if (!partFile.renameTo(modelFile)) throw DownloadException("Could not save the model. Try again.")
+        if (!partFile.renameTo(modelFile)) throw DownloadException("No se ha podido guardar el modelo. Vuelve a intentarlo.")
     }
 
     private suspend fun sha256(file: File): String = withContext(Dispatchers.IO) {
