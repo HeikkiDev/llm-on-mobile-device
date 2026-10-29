@@ -653,7 +653,11 @@ private struct LanguagePicker: View {
                 if browsing && !model.recents.isEmpty {
                     Section("Recientes") { ForEach(model.recents) { row($0) } }
                 }
-                Section(browsing ? "Todos" : "") { ForEach(results) { row($0) } }
+                if browsing {
+                    Section("Todos") { ForEach(results) { row($0) } }
+                } else {
+                    Section { ForEach(results) { row($0) } }
+                }
                 Section {
                     Text("🔇 = sin voz en este teléfono. \(installVoicesHint)")
                         .font(.footnote)
