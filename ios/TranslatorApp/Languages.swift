@@ -2,24 +2,21 @@ import Foundation
 
 /// `englishName` is what the prompts use. `scriptHint` is appended to prompts when the language has
 /// more than one common script. `voiceLocale` is requested from the system voices; nil = no voice.
-/// `speakWord` ("speak" in that language) is shown on the coworker's button.
 struct Language: Hashable, Identifiable, Sendable {
     let code: String
     let spanishName: String
     let englishName: String
     let nativeName: String
     let voiceLocale: String?
-    let speakWord: String
     let scriptHint: String?
 
     init(_ code: String, _ spanishName: String, _ englishName: String, _ nativeName: String,
-         _ voiceLocale: String?, _ speakWord: String, _ scriptHint: String? = nil) {
+         _ voiceLocale: String?, _ scriptHint: String? = nil) {
         self.code = code
         self.spanishName = spanishName
         self.englishName = englishName
         self.nativeName = nativeName
         self.voiceLocale = voiceLocale
-        self.speakWord = speakWord
         self.scriptHint = scriptHint
     }
 
@@ -33,10 +30,9 @@ struct Language: Hashable, Identifiable, Sendable {
         let voice = splitTag(voiceLanguage)
         guard wanted.language == voice.language else { return nil }
         if wanted.region == voice.region { return 1 }
-        // When two list entries share a voice language (Punjabi India/Pakistan), only the exact region counts.
-        let shared = (Languages.all + [Languages.spanish])
-            .filter { $0.voiceLocale.map { splitTag($0).language } == wanted.language }.count > 1
-        return shared ? nil : 0
+        // Punjabi India/Pakistan are different languages in practice: only the exact region counts.
+        // Everything else (Arabic voices are ar-001, ar-XA…) accepts any region.
+        return wanted.language == "pa" ? nil : 0
     }
 }
 
@@ -47,48 +43,48 @@ private func splitTag(_ tag: String) -> (language: String, region: String) {
 
 enum Languages {
     /// Walter's language. Fixed; not in the coworker list.
-    static let spanish = Language("es", "Español", "Spanish", "Español", "es-ES", "Habla")
+    static let spanish = Language("es", "Español", "Spanish", "Español", "es-ES")
 
     static let all: [Language] = [
-        Language("ur", "Urdu", "Urdu", "اردو", "ur-PK", "بولیں"),
-        Language("pa-Arab", "Panyabí (Pakistán)", "Punjabi", "پنجابی", "pa-PK", "بولو",
+        Language("ur", "Urdu", "Urdu", "اردو", "ur-PK"),
+        Language("pa-Arab", "Panyabí (Pakistán)", "Punjabi", "پنجابی", "pa-PK",
                  "Write Punjabi in Shahmukhi (Perso-Arabic) script, as used in Pakistan."),
-        Language("pa", "Panyabí (India)", "Punjabi", "ਪੰਜਾਬੀ", "pa-IN", "ਬੋਲੋ", "Write Punjabi in Gurmukhi script."),
-        Language("ps", "Pastún", "Pashto", "پښتو", "ps-AF", "خبرې وکړه"),
-        Language("sd", "Sindi", "Sindhi", "سنڌي", "sd-PK", "ڳالهايو", "Write Sindhi in Arabic script."),
-        Language("hi", "Hindi", "Hindi", "हिन्दी", "hi-IN", "बोलिए"),
-        Language("bn", "Bengalí", "Bengali", "বাংলা", "bn-BD", "বলুন"),
-        Language("ne", "Nepalí", "Nepali", "नेपाली", "ne-NP", "बोल्नुहोस्"),
-        Language("fa", "Persa / Dari", "Persian", "فارسی", "fa-IR", "صحبت کن"),
-        Language("ar", "Árabe", "Arabic", "العربية", "ar-SA", "تكلم", "Use Modern Standard Arabic."),
-        Language("ary", "Árabe marroquí (dariya)", "Moroccan Arabic (Darija)", "الدارجة", "ar-MA", "هضر"),
-        Language("wo", "Wolof", "Wolof", "Wolof", nil, "Wax"),
-        Language("bm", "Bambara", "Bambara", "Bamanankan", nil, "Kuma"),
-        Language("ha", "Hausa", "Hausa", "Hausa", nil, "Yi magana"),
-        Language("sw", "Suajili", "Swahili", "Kiswahili", "sw-KE", "Ongea"),
-        Language("am", "Amárico", "Amharic", "አማርኛ", "am-ET", "ተናገር"),
-        Language("fr", "Francés", "French", "Français", "fr-FR", "Parle"),
-        Language("en", "Inglés", "English", "English", "en-GB", "Speak"),
-        Language("ro", "Rumano", "Romanian", "Română", "ro-RO", "Vorbește"),
-        Language("bg", "Búlgaro", "Bulgarian", "Български", "bg-BG", "Говори"),
-        Language("uk", "Ucraniano", "Ukrainian", "Українська", "uk-UA", "Говори"),
-        Language("ru", "Ruso", "Russian", "Русский", "ru-RU", "Говори"),
-        Language("pl", "Polaco", "Polish", "Polski", "pl-PL", "Mów"),
-        Language("pt", "Portugués", "Portuguese", "Português", "pt-PT", "Fala"),
-        Language("it", "Italiano", "Italian", "Italiano", "it-IT", "Parla"),
-        Language("de", "Alemán", "German", "Deutsch", "de-DE", "Sprich"),
-        Language("nl", "Neerlandés", "Dutch", "Nederlands", "nl-NL", "Spreek"),
-        Language("ca", "Catalán", "Catalan", "Català", "ca-ES", "Parla"),
-        Language("sq", "Albanés", "Albanian", "Shqip", "sq-AL", "Fol"),
-        Language("ka", "Georgiano", "Georgian", "ქართული", "ka-GE", "ილაპარაკე"),
-        Language("tr", "Turco", "Turkish", "Türkçe", "tr-TR", "Konuş"),
-        Language("zh", "Chino", "Chinese", "简体中文", "zh-CN", "请说", "Use Simplified Chinese characters."),
-        Language("ja", "Japonés", "Japanese", "日本語", "ja-JP", "話して"),
-        Language("ko", "Coreano", "Korean", "한국어", "ko-KR", "말하세요"),
-        Language("vi", "Vietnamita", "Vietnamese", "Tiếng Việt", "vi-VN", "Nói"),
-        Language("th", "Tailandés", "Thai", "ไทย", "th-TH", "พูด"),
-        Language("id", "Indonesio", "Indonesian", "Bahasa Indonesia", "id-ID", "Bicara"),
-        Language("tl", "Filipino (tagalo)", "Filipino", "Filipino", "fil-PH", "Magsalita"),
+        Language("pa", "Panyabí (India)", "Punjabi", "ਪੰਜਾਬੀ", "pa-IN", "Write Punjabi in Gurmukhi script."),
+        Language("ps", "Pastún", "Pashto", "پښتو", "ps-AF"),
+        Language("sd", "Sindi", "Sindhi", "سنڌي", "sd-PK", "Write Sindhi in Arabic script."),
+        Language("hi", "Hindi", "Hindi", "हिन्दी", "hi-IN"),
+        Language("bn", "Bengalí", "Bengali", "বাংলা", "bn-BD"),
+        Language("ne", "Nepalí", "Nepali", "नेपाली", "ne-NP"),
+        Language("fa", "Persa / Dari", "Persian", "فارسی", "fa-IR"),
+        Language("ar", "Árabe", "Arabic", "العربية", "ar-SA", "Use Modern Standard Arabic."),
+        Language("ary", "Árabe marroquí (dariya)", "Moroccan Arabic (Darija)", "الدارجة", "ar-MA"),
+        Language("wo", "Wolof", "Wolof", "Wolof", nil),
+        Language("bm", "Bambara", "Bambara", "Bamanankan", nil),
+        Language("ha", "Hausa", "Hausa", "Hausa", nil),
+        Language("sw", "Suajili", "Swahili", "Kiswahili", "sw-KE"),
+        Language("am", "Amárico", "Amharic", "አማርኛ", "am-ET"),
+        Language("fr", "Francés", "French", "Français", "fr-FR"),
+        Language("en", "Inglés", "English", "English", "en-GB"),
+        Language("ro", "Rumano", "Romanian", "Română", "ro-RO"),
+        Language("bg", "Búlgaro", "Bulgarian", "Български", "bg-BG"),
+        Language("uk", "Ucraniano", "Ukrainian", "Українська", "uk-UA"),
+        Language("ru", "Ruso", "Russian", "Русский", "ru-RU"),
+        Language("pl", "Polaco", "Polish", "Polski", "pl-PL"),
+        Language("pt", "Portugués", "Portuguese", "Português", "pt-PT"),
+        Language("it", "Italiano", "Italian", "Italiano", "it-IT"),
+        Language("de", "Alemán", "German", "Deutsch", "de-DE"),
+        Language("nl", "Neerlandés", "Dutch", "Nederlands", "nl-NL"),
+        Language("ca", "Catalán", "Catalan", "Català", "ca-ES"),
+        Language("sq", "Albanés", "Albanian", "Shqip", "sq-AL"),
+        Language("ka", "Georgiano", "Georgian", "ქართული", "ka-GE"),
+        Language("tr", "Turco", "Turkish", "Türkçe", "tr-TR"),
+        Language("zh", "Chino", "Chinese", "简体中文", "zh-CN", "Use Simplified Chinese characters."),
+        Language("ja", "Japonés", "Japanese", "日本語", "ja-JP"),
+        Language("ko", "Coreano", "Korean", "한국어", "ko-KR"),
+        Language("vi", "Vietnamita", "Vietnamese", "Tiếng Việt", "vi-VN"),
+        Language("th", "Tailandés", "Thai", "ไทย", "th-TH"),
+        Language("id", "Indonesio", "Indonesian", "Bahasa Indonesia", "id-ID"),
+        Language("tl", "Filipino (tagalo)", "Filipino", "Filipino", "fil-PH"),
     ]
 
     static let maxRecents = 5

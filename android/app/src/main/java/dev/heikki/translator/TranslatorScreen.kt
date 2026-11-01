@@ -344,11 +344,11 @@ private fun ConversationContent(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     MicButton(
-                        side = Side.Walter, label = "HABLO YO", word = null, state = state,
+                        side = Side.Walter, label = "HABLO YO", state = state,
                         modifier = Modifier.weight(1f), onClick = { mic(Side.Walter, false) },
                     )
                     MicButton(
-                        side = Side.Coworker, label = "HABLA ÉL", word = coworker.speakWord, state = state,
+                        side = Side.Coworker, label = "HABLA ÉL", state = state,
                         modifier = Modifier.weight(1f), onClick = { mic(Side.Coworker, false) },
                     )
                 }
@@ -413,7 +413,7 @@ private fun Notice(text: String, action: String, onAction: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun MicButton(side: Side, label: String, word: String?, state: UiState, modifier: Modifier, onClick: () -> Unit) {
+private fun MicButton(side: Side, label: String, state: UiState, modifier: Modifier, onClick: () -> Unit) {
     val activity = state.activity
     val speakingSide = (activity as? Activity.Speaking)?.let { a -> state.turns.firstOrNull { it.id == a.turnId }?.side }
     val listening = activity is Activity.Listening && activity.side == side && !activity.detecting
@@ -441,7 +441,7 @@ private fun MicButton(side: Side, label: String, word: String?, state: UiState, 
             if ((activity as Activity.Listening).elapsedMs >= WARN_RECORDING_MS) "Termina la frase…" else "toca para terminar"
         translating -> "Traduciendo…" to "toca para parar"
         speaking -> "Hablando…" to "toca para parar"
-        else -> label to word
+        else -> label to null
     }
     Button(
         onClick = onClick,

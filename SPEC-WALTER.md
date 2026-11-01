@@ -129,6 +129,7 @@ The UI can't know the direction in advance; it shows the result in a bubble on t
 - **Offline only.** Android: pick a `Voice` for the locale with `!isNetworkConnectionRequired` and without `KEY_FEATURE_NOT_INSTALLED`, and pass `KEY_FEATURE_NETWORK_SYNTHESIS = "false"`; if none exists, treat the language as "no voice". iOS: `AVSpeechSynthesisVoice(language:)`; `nil` → "no voice".
 - Android 11+ package visibility: add `<queries><intent><action android:name="android.intent.action.TTS_SERVICE"/></intent></queries>` to the manifest (required to bind the system TTS engine).
 - **No voice for the language** (expected for Punjabi, Pashto, Sindhi and others, §6): no error dialog. The bubble shows the translation **extra large** with a "Enséñale la pantalla 👀" hint and a **full-screen "Mostrar"** button (big text, white on black, max font size that fits) for the coworker to read. For Urdu-script languages, a `Language.fallbackVoice` may be set (e.g. Punjabi-Pakistan → no fallback by default; owner decides in W5 whether Urdu voice is understandable enough).
+- **Voice matching:** a voice fits a language when its language subtag matches (`ur-IN` can speak `ur-PK`), preferring the exact region, then higher quality. Two exceptions: Punjabi (`pa-IN` / `pa-PK`) needs the exact region, so the two variants never mix; Arabic and Darija (`ar-SA`, `ar-MA`) accept any installed `ar` voice (`ar`, `ar-XA`, `ar-001`…), since real Arabic voices carry no `SA` / `MA` region.
 - Voice availability is checked **on device at runtime** (Google publishes no fixed list of offline voices; Apple neither). Show a small 🔇 icon next to languages without a voice in the picker.
 - Missing Spanish voice (unlikely): on Android, offer one button "Instalar voz española" → `TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA` (system settings; the download is done by the system, not by this app). Same button available in the picker for the selected coworker language. The README tells the owner to install Spanish + Urdu voices on Walter's phone once, on Wi-Fi.
 - Haptics: light tick on record start, double tick on stop. Android `View.performHapticFeedback` (no `VIBRATE` permission); iOS `.sensoryFeedback`.
@@ -165,8 +166,8 @@ The UI can't know the direction in advance; it shows the result in a bubble on t
 │ ┌───────────────┐ ┌───────────────┐ │
 │ │      🎤        │ │      🎤        │ │  two huge buttons (≥ 120 dp tall,
 │ │   HABLO YO    │ │   HABLA ÉL    │ │   ≈ half width each), distinct colors
-│ │               │ │   بولیں        │ │   "Habla él" also shows the coworker-
-│ └───────────────┘ └───────────────┘ │   language word for "speak"
+│ │               │ │               │ │
+│ └───────────────┘ └───────────────┘ │
 │   ⌨ Escribir            🗑 Nueva     │  small secondary actions
 └─────────────────────────────────────┘
 ```
@@ -205,7 +206,7 @@ Triggered from the "Choose language" state or the 🎤? button next to the langu
 
 Walter's language is fixed: **Spanish (`es`, voice `es-ES`)**. The coworker list below is the default set; Gemma 4 claims 35+ languages out of the box and 140+ in pre-training but **Google publishes no per-language list** for text or audio, so quality marks are owner-verified in W5 and the list may be trimmed. Codes are BCP-47; `voice` is the locale requested from the TTS engine.
 
-`Language(code, spanishName, englishName /*used in prompts*/, nativeName, voiceLocale, speakWord /*"speak" in that language, shown on "Habla él"*/, scriptHint /*optional output-script instruction, §3.3*/)`
+`Language(code, spanishName, englishName /*used in prompts*/, nativeName, voiceLocale, scriptHint /*optional output-script instruction, §3.3*/)`
 
 | Group | Code | Español | English (prompt) | Native | Voice locale |
 |---|---|---|---|---|---|
