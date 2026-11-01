@@ -4,7 +4,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
 
-/** SPEC §8: network code lives only in ModelDownloader.kt and no networking/analytics libraries are used. */
+/**
+ * SPEC §8 / SPEC-WALTER §8: network code lives only in ModelDownloader.kt, no networking/analytics libraries,
+ * no platform speech recognizers (they may use the cloud), and TTS never synthesizes over the network.
+ */
 class NetworkScopeTest {
     // Gradle runs unit tests with the module directory (android/app) as working directory.
     private val app = File(System.getProperty("user.dir")!!)
@@ -43,9 +46,26 @@ class NetworkScopeTest {
     }
 
     @Test
-    fun manifestRequestsOnlyInternetAndNetworkState() {
+    fun noPlatformSpeechRecognizers() {
+        val files = sources(main, setOf("kt", "java", "xml"))
+        val regex = Regex("""SpeechRecognizer|RecognizerIntent|RecognitionService|android\.speech\.action""")
+        assertEquals(emptySet<String>(), filesMatching(files, regex))
+    }
+
+    @Test
+    fun speakerDisablesNetworkSynthesisAndSkipsNetworkVoices() {
+        val speaker = File(main, "java/dev/heikki/translator/Speaker.kt").readText()
+        assertEquals(true, speaker.contains("""putString(TextToSpeech.Engine.KEY_FEATURE_NETWORK_SYNTHESIS, "false")"""))
+        assertEquals(true, speaker.contains("!it.isNetworkConnectionRequired"))
+    }
+
+    @Test
+    fun manifestRequestsOnlyInternetNetworkStateAndMicrophone() {
         val permissions = Regex("""<uses-permission[^>]*android:name="([^"]+)"""")
             .findAll(File(main, "AndroidManifest.xml").readText()).map { it.groupValues[1] }.toSet()
-        assertEquals(setOf("android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE"), permissions)
+        assertEquals(
+            setOf("android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE", "android.permission.RECORD_AUDIO"),
+            permissions,
+        )
     }
 }

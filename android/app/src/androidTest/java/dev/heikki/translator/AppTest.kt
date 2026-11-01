@@ -50,8 +50,8 @@ class AppTest {
     @Test
     fun showsDownloadStateWithoutModel() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            compose.onNodeWithText("Download the language model").assertIsDisplayed()
-            compose.onNodeWithText("Download").assertIsDisplayed()
+            compose.onNodeWithText("Descarga el modelo de idiomas").assertIsDisplayed()
+            compose.onNodeWithText("Descargar").assertIsDisplayed()
         }
     }
 
@@ -59,18 +59,21 @@ class AppTest {
     fun wrongSizeModelStillShowsDownloadState() {
         File(files, MODEL_FILE).writeBytes(ByteArray(1024))
         ActivityScenario.launch(MainActivity::class.java).use {
-            compose.onNodeWithText("Download").assertIsDisplayed()
+            compose.onNodeWithText("Descargar").assertIsDisplayed()
         }
     }
 
     @Test
-    fun requestsOnlyInternetAndNetworkState() {
+    fun requestsOnlyInternetNetworkStateAndMicrophone() {
         @Suppress("DEPRECATION")
         val requested = context.packageManager
             .getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
             .requestedPermissions.orEmpty().toSet()
         // AndroidX adds this signature-level, app-private permission; it is not a network permission.
         val own = "${context.packageName}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-        assertEquals(setOf(Manifest.permission.INTERNET, Manifest.permission.ACCESS_NETWORK_STATE), requested - own)
+        assertEquals(
+            setOf(Manifest.permission.INTERNET, Manifest.permission.ACCESS_NETWORK_STATE, Manifest.permission.RECORD_AUDIO),
+            requested - own,
+        )
     }
 }

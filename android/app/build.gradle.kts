@@ -8,7 +8,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "dev.heikki.translator"
+        applicationId = "dev.heikki.walter"
         minSdk = 26
         targetSdk = 37
         versionCode = 1

@@ -25,20 +25,20 @@ enum DownloadError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .noConnection: "No connection. Check your internet and try again."
-        case .expensiveNetwork: "Waiting for Wi-Fi."
-        case .notEnoughSpace(let needed): "Not enough space. Free up about \(formatGB(needed)) and try again."
+        case .noConnection: "Sin conexión. Revisa internet y vuelve a intentarlo."
+        case .expensiveNetwork: "Esperando al wifi."
+        case .notEnoughSpace(let needed): "No hay espacio suficiente. Libera unos \(formatGB(needed)) y vuelve a intentarlo."
         case .http(let code): httpErrorMessage(code)
-        case .corrupted: "Download corrupted, try again."
-        case .saveFailed: "Could not save the model. Try again."
+        case .corrupted: "La descarga está dañada. Vuelve a intentarlo."
+        case .saveFailed: "No se ha podido guardar el modelo. Vuelve a intentarlo."
         }
     }
 }
 
 func httpErrorMessage(_ code: Int) -> String {
     switch code {
-    case 403, 404, 410, 429, 500...599: "Model server unavailable, try later (HTTP \(code))."
-    default: "Download failed (HTTP \(code))."
+    case 403, 404, 410, 429, 500...599: "El servidor del modelo no está disponible. Prueba más tarde (HTTP \(code))."
+    default: "La descarga ha fallado (HTTP \(code))."
     }
 }
 
