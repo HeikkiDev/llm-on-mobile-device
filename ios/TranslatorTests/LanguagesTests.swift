@@ -8,7 +8,7 @@ struct LanguagesTests {
         #expect(!Languages.all.contains { $0.code == "es" })
         for language in Languages.all {
             #expect(!language.spanishName.isEmpty && !language.englishName.isEmpty, "\(language.code)")
-            #expect(!language.nativeName.isEmpty && !language.speakWord.isEmpty, "\(language.code)")
+            #expect(!language.nativeName.isEmpty, "\(language.code)")
         }
         #expect(Languages.all.first?.code == "ur")
     }
@@ -47,5 +47,16 @@ struct LanguagesTests {
         #expect(Languages.byCode("pa")!.voiceFit("pa-IN") == 1)
         #expect(Languages.byCode("pa")!.voiceFit("pa-PK") == nil)
         #expect(Languages.byCode("pa-Arab")!.voiceFit("pa-PK") == 1)
+        #expect(Languages.byCode("pa-Arab")!.voiceFit("pa-IN") == nil)
+        // Arabic voices are ar-001 (iOS): any Arabic voice fits, the exact region fits best.
+        for code in ["ar", "ary"] {
+            let arabic = Languages.byCode(code)!
+            #expect(arabic.voiceFit("ar-001") == 0)
+            #expect(arabic.voiceFit("ar-XA") == 0)
+            #expect(arabic.voiceFit("ar") == 0)
+            #expect(arabic.voiceFit("es-ES") == nil)
+        }
+        #expect(Languages.byCode("ar")!.voiceFit("ar-SA") == 1)
+        #expect(Languages.byCode("ary")!.voiceFit("ar-MA") == 1)
     }
 }

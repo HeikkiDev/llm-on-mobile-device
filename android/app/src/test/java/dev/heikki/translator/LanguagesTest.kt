@@ -12,7 +12,7 @@ class LanguagesTest {
         assertFalse(Languages.all.any { it.code == "es" })
         Languages.all.forEach {
             assertTrue(it.code, it.spanishName.isNotBlank() && it.englishName.isNotBlank())
-            assertTrue(it.code, it.nativeName.isNotBlank() && it.speakWord.isNotBlank())
+            assertTrue(it.code, it.nativeName.isNotBlank())
         }
         assertEquals("ur", Languages.all.first().code)
     }

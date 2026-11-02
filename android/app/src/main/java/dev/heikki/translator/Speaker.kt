@@ -54,18 +54,7 @@ class Speaker(context: Context, private val onReady: () -> Unit) {
     }
 
     /** An installed voice for [language], or null. Never a voice that needs the network. */
-    fun offlineVoice(language: Language): Voice? {
-        val tag = language.voiceLocale ?: return null
-        val wanted = Locale.forLanguageTag(tag)
-        val voices = voices.filter { it.locale.language == wanted.language }
-        // When two list entries share a voice language (Punjabi India/Pakistan), only the exact region counts.
-        val shared = (Languages.all + Languages.spanish).count {
-            it.voiceLocale?.let { l -> Locale.forLanguageTag(l).language } == wanted.language
-        } > 1
-        val sameCountry = voices.filter { it.locale.country == wanted.country }
-        return (if (shared) sameCountry else sameCountry.ifEmpty { voices })
-            .maxByOrNull { it.quality }
-    }
+    fun offlineVoice(language: Language): Voice? = bestVoice(language, voices, { it.locale }, { it.quality })
 
     fun hasOfflineVoice(language: Language): Boolean = offlineVoice(language) != null
 
@@ -96,4 +85,17 @@ class Speaker(context: Context, private val onReady: () -> Unit) {
         onDone = null
         tts.shutdown()
     }
+}
+
+/**
+ * The best of [voices] for [language]: same voice language, preferring the exact region, then higher quality.
+ * Punjabi India/Pakistan are different languages in practice, so only the exact region counts there.
+ * Everything else (Arabic voices are ar, ar-XA, ar-001) accepts any region.
+ */
+internal fun <T> bestVoice(language: Language, voices: List<T>, localeOf: (T) -> Locale, qualityOf: (T) -> Int): T? {
+    val wanted = Locale.forLanguageTag(language.voiceLocale ?: return null)
+    val sameLanguage = voices.filter { localeOf(it).language == wanted.language }
+    val sameCountry = sameLanguage.filter { localeOf(it).country == wanted.country }
+    return (if (wanted.language == "pa") sameCountry else sameCountry.ifEmpty { sameLanguage })
+        .maxByOrNull(qualityOf)
 }

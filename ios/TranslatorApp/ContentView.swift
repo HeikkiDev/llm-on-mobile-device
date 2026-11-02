@@ -215,7 +215,7 @@ private struct ConversationView: View {
             }
         }
         .safeAreaInset(edge: .top) { header(coworker) }
-        .safeAreaInset(edge: .bottom) { controls(coworker) }
+        .safeAreaInset(edge: .bottom) { controls }
         .sheet(isPresented: $writing) {
             WritingSheet(coworker: coworker) { text in
                 model.translateText(text)
@@ -266,13 +266,13 @@ private struct ConversationView: View {
         }
     }
 
-    private func controls(_ coworker: Language) -> some View {
+    private var controls: some View {
         let idle = model.activity == .idle || { if case .speaking = model.activity { true } else { false } }()
         return GlassEffectContainer {
             VStack(spacing: 8) {
                 HStack(spacing: 12) {
-                    MicButton(side: .walter, label: "HABLO YO", word: nil)
-                    MicButton(side: .coworker, label: "HABLA ÉL", word: coworker.speakWord)
+                    MicButton(side: .walter, label: "HABLO YO")
+                    MicButton(side: .coworker, label: "HABLA ÉL")
                 }
                 HStack {
                     Button { writing = true } label: {
@@ -303,7 +303,6 @@ private struct MicButton: View {
     @Environment(TranslatorModel.self) private var model
     let side: Side
     let label: String
-    let word: String?
 
     var body: some View {
         let activity = model.activity
@@ -329,7 +328,7 @@ private struct MicButton: View {
             if listening { ("Escuchando…", elapsedMs >= warnRecordingMs ? "Termina la frase…" : "toca para terminar") }
             else if translating { ("Traduciendo…", "toca para parar") }
             else if speaking { ("Hablando…", "toca para parar") }
-            else { (label, word) }
+            else { (label, nil) }
         let pulse = model.hint == side && activity == .idle
         return Button { model.onMic(side) } label: {
             VStack(spacing: 6) {
