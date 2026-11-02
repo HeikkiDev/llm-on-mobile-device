@@ -16,6 +16,10 @@ A minimalist **on-device translator** for Android and iOS. It runs **Gemma 4 E2B
 
 This branch builds **Traductor Walter** (`dev.heikki.walter`), a variant for a Spanish-only speaker talking with one coworker on construction sites. It adds **voice**: two big buttons ("Hablo yo" / "Habla él"), on-device speech recognition and translation by Gemma 4 E2B's audio encoder, translations read aloud with the phone's offline voices, automatic detection of the coworker's language, and the language remembered between uses. The UI is in Spanish. See [`SPEC-WALTER.md`](SPEC-WALTER.md).
 
+| Android | iOS |
+|:---:|:---:|
+| <img src="docs/screenshot-walter-android.png" alt="Traductor Walter main screen on Android with the Hablo yo and Habla él buttons" width="300"> | <img src="docs/screenshot-walter-ios.png" alt="Traductor Walter main screen on iOS with the Hablo yo and Habla él buttons" width="300"> |
+
 - Same model and one-time download as the main app; still fully offline afterwards. Audio is processed on the phone and deleted right away.
 - Extra permission: microphone (Android `RECORD_AUDIO`, iOS `NSMicrophoneUsageDescription`), asked on the first mic tap.
 - Install the Spanish voice (and the coworker's, e.g. Urdu) once, on Wi-Fi: Android *Settings → Accessibility → Text-to-speech output → Speech Services by Google → Install voice data*; iOS *Settings → Accessibility → Spoken Content → Voices*. Languages without an offline voice are shown in large text instead.
