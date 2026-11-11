@@ -145,7 +145,7 @@ The UI can't know the direction in advance; it shows the result in a bubble on t
    - Secondary: **"🔍 Buscar en la lista"** → language picker.
 3. **Conversation** — the main screen (everything below). App opens directly here on every later launch with the remembered language.
 
-### 5.2 Conversation screen (portrait, phone in Walter's hand)
+### 5.2 Conversation screen (adaptive, usually held in portrait)
 ```
 ┌─────────────────────────────────────┐
 │  Compañero: [ اردو  Urdu  ▾ ]  [🎤?] │  ← language chip (opens picker) + "Detectar"
@@ -179,7 +179,7 @@ The UI can't know the direction in advance; it shows the result in a bubble on t
 - **Nueva** clears the in-memory conversation (confirm with a small dialog). The conversation is also lost when the app process dies — by design (privacy, simplicity).
 - **Errors** in plain Spanish inside the bubble with a "Reintentar" button (re-runs the last audio, kept in memory until the next turn): "No he entendido, repite más despacio", "No he oído nada", "Falta permiso de micrófono".
 - Screen kept on while the conversation screen is visible (`keepScreenOn` / `isIdleTimerDisabled`).
-- Portrait only.
+- Supports any orientation and display shape; controls reflow from the available width and height when the display resizes.
 - Accessibility: minimum 64 dp touch targets on primary actions (gloves), Dynamic Type / font scaling, TalkBack/VoiceOver labels in Spanish, live region announcement when a translation completes (once, not per token), content descriptions for 🔊/🎤 buttons, high contrast in sunlight (avoid low-contrast glass over busy content; glass only on controls).
 
 ### 5.3 Language detection flow

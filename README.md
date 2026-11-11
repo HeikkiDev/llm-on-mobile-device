@@ -29,6 +29,17 @@ This branch builds **Traductor Walter** (`dev.heikki.walter`), a variant for a S
 
 **Devices:** 8 GB RAM recommended; ~2.8 GB free storage for the first download.
 
+### iPhone Duo
+
+The iOS app is ready for [iPhone Duo](https://developer.apple.com/iphone-duo/prepare/): it resizes cleanly when the phone folds or unfolds (outer ↔ inner display) and keeps the conversation, recording and speech going mid-resize.
+
+- Built with the iOS 27.1 SDK; all orientations are allowed, so the app can take any shape.
+- Layout comes from the available space (`GeometryReader`, width vs height), never from `UIScreen.main`, device orientation, idiom or hardcoded sizes. When the space is wider than tall, the two mic buttons get more compact so the conversation keeps room.
+
+<img src="docs/screenshot-iphone-duo.png" alt="Traductor Walter unfolded on the iPhone Duo simulator, with the language chip on top and the Hablo yo and Habla él buttons side by side" width="600">
+
+To try it: Xcode 27.1 → iPhone Duo simulator (iOS 27.1). In Xcode 27 the Simulator app is **DeviceHub**; pick *iPhone Duo* there. Quitting DeviceHub shuts the simulator down.
+
 ## Model
 
 | | |

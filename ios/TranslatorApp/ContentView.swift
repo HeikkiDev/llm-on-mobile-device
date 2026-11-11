@@ -183,39 +183,42 @@ private struct ConversationView: View {
 
     var body: some View {
         let coworker = model.coworker ?? Languages.spanish
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    if let detected = model.confirmLanguage {
-                        ConfirmBanner(language: detected, onChange: { onChangeLanguage(Languages.related(detected)) })
+        GeometryReader { geometry in
+            let wideLayout = geometry.size.width > geometry.size.height
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        if let detected = model.confirmLanguage {
+                            ConfirmBanner(language: detected, onChange: { onChangeLanguage(Languages.related(detected)) })
+                        }
+                        if model.voiceless.contains(Languages.spanish.code) {
+                            Notice(text: "Falta la voz española en el teléfono. \(installVoicesHint)")
+                        }
+                        if model.lowVolumeNotice {
+                            Notice(text: "Sube el volumen 🔊", action: "Vale") { model.dismissLowVolume() }
+                        }
+                        if model.turns.isEmpty {
+                            Text("Toca un botón y habla. La traducción se dice en voz alta.")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 32)
+                        }
+                        ForEach(model.turns) { turn in
+                            Bubble(turn: turn, newest: turn.id == model.turns.last?.id) { shown = ShownText(text: turn.translation) }
+                                .id(turn.id)
+                        }
                     }
-                    if model.voiceless.contains(Languages.spanish.code) {
-                        Notice(text: "Falta la voz española en el teléfono. \(installVoicesHint)")
-                    }
-                    if model.lowVolumeNotice {
-                        Notice(text: "Sube el volumen 🔊", action: "Vale") { model.dismissLowVolume() }
-                    }
-                    if model.turns.isEmpty {
-                        Text("Toca un botón y habla. La traducción se dice en voz alta.")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 32)
-                    }
-                    ForEach(model.turns) { turn in
-                        Bubble(turn: turn, newest: turn.id == model.turns.last?.id) { shown = ShownText(text: turn.translation) }
-                            .id(turn.id)
-                    }
+                    .padding()
                 }
-                .padding()
+                .onChange(of: model.turns.last?.translation) {
+                    if let last = model.turns.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
+                }
             }
-            .onChange(of: model.turns.last?.translation) {
-                if let last = model.turns.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
-            }
+            .safeAreaInset(edge: .top) { header(coworker) }
+            .safeAreaInset(edge: .bottom) { controls(wideLayout: wideLayout) }
         }
-        .safeAreaInset(edge: .top) { header(coworker) }
-        .safeAreaInset(edge: .bottom) { controls }
         .sheet(isPresented: $writing) {
             WritingSheet(coworker: coworker) { text in
                 model.translateText(text)
@@ -266,13 +269,13 @@ private struct ConversationView: View {
         }
     }
 
-    private var controls: some View {
+    private func controls(wideLayout: Bool) -> some View {
         let idle = model.activity == .idle || { if case .speaking = model.activity { true } else { false } }()
         return GlassEffectContainer {
             VStack(spacing: 8) {
                 HStack(spacing: 12) {
-                    MicButton(side: .walter, label: "HABLO YO")
-                    MicButton(side: .coworker, label: "HABLA ÉL")
+                    MicButton(side: .walter, label: "HABLO YO", wideLayout: wideLayout)
+                    MicButton(side: .coworker, label: "HABLA ÉL", wideLayout: wideLayout)
                 }
                 HStack {
                     Button { writing = true } label: {
@@ -303,6 +306,7 @@ private struct MicButton: View {
     @Environment(TranslatorModel.self) private var model
     let side: Side
     let label: String
+    let wideLayout: Bool
 
     var body: some View {
         let activity = model.activity
@@ -333,20 +337,26 @@ private struct MicButton: View {
         return Button { model.onMic(side) } label: {
             VStack(spacing: 6) {
                 if translating {
-                    ProgressView().controlSize(.large).tint(.white)
+                    ProgressView().controlSize(wideLayout ? .regular : .large).tint(.white)
                 } else {
-                    Image(systemName: listening || speaking ? "stop.fill" : "mic.fill").font(.system(size: 36))
+                    Image(systemName: listening || speaking ? "stop.fill" : "mic.fill")
+                        .font(.system(size: wideLayout ? 28 : 36))
                 }
-                Text(title).font(.title2.bold()).multilineTextAlignment(.center)
+                Text(title)
+                    .font(wideLayout ? .headline.bold() : .title2.bold())
+                    .multilineTextAlignment(.center)
                 if listening {
                     ProgressView(value: Double(level)).tint(.white).frame(maxWidth: 120)
                 }
                 if let subtitle {
-                    Text(subtitle).font(.headline).multilineTextAlignment(.center).lineLimit(2)
+                    Text(subtitle)
+                        .font(wideLayout ? .caption : .headline)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
                 }
             }
             .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, minHeight: 140)
+            .frame(maxWidth: .infinity, minHeight: wideLayout ? 96 : 140)
         }
         .buttonStyle(.glassProminent)
         .buttonBorderShape(.roundedRectangle(radius: 28))
