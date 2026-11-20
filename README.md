@@ -18,7 +18,7 @@ This branch builds **Traductor Walter** (`dev.heikki.walter`), a variant for a S
 
 - Same model and one-time download as the main app; still fully offline afterwards. Audio is processed on the phone and deleted right away.
 - Extra permission: microphone (Android `RECORD_AUDIO`, iOS `NSMicrophoneUsageDescription`), asked on the first mic tap.
-- Install the Spanish voice (and the coworker's, e.g. Urdu) once, on Wi-Fi: Android *Settings → Accessibility → Text-to-speech output → Speech Services by Google → Install voice data*; iOS *Settings → Accessibility → Spoken Content → Voices*. Languages without an offline voice are shown in large text instead.
+- Install the Spanish voice (and the coworker's, e.g. Urdu) once, on Wi-Fi: Android *Settings → Accessibility → Text-to-speech output → Speech Services by Google → Install voice data*; iOS *Settings → Accessibility → Spoken Content → Voices*. On Android the app's **Instalar** button opens the same screen (Google's engine is used whenever it is installed, even if the phone's default engine is another). Google offers **Urdu (Pakistan)** (~61 MB) and **Sindhi (India)**, which also reads Arabic-script Sindhi; there is no Pashto or Pakistani Punjabi voice, so Pakistani Punjabi is read by the Urdu voice (same script, Urdu accent). Languages without an offline voice are shown in large text instead.
 
 ## Apps
 

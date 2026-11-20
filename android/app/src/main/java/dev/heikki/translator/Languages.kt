@@ -6,6 +6,7 @@ import java.util.Locale
 /**
  * [englishName] is what the prompts use. [scriptHint] is appended to prompts when the language has
  * more than one common script. [voiceLocale] is requested from the system TTS engine; null = no voice.
+ * [fallbackVoice] is the code of a language whose voice reads this one's text when it has no voice of its own.
  */
 data class Language(
     val code: String,
@@ -14,6 +15,7 @@ data class Language(
     val nativeName: String,
     val voiceLocale: String?,
     val scriptHint: String? = null,
+    val fallbackVoice: String? = null,
 )
 
 object Languages {
@@ -23,7 +25,10 @@ object Languages {
     val all = listOf(
         Language("ur", "Urdu", "Urdu", "اردو", "ur-PK"),
         Language("pa-Arab", "Panyabí (Pakistán)", "Punjabi", "پنجابی", "pa-PK",
-            "Write Punjabi in Shahmukhi (Perso-Arabic) script, as used in Pakistan."),
+            "Write Punjabi in Shahmukhi (Perso-Arabic) script, as used in Pakistan.",
+            // No pa-PK voice exists; the Urdu voice reads Shahmukhi (same script), Punjabi words with an
+            // Urdu accent. Google's pa-IN voice can't: it reads Gurmukhi only (emulator check 2026-11-20).
+            fallbackVoice = "ur"),
         Language("pa", "Panyabí (India)", "Punjabi", "ਪੰਜਾਬੀ", "pa-IN", "Write Punjabi in Gurmukhi script."),
         Language("ps", "Pastún", "Pashto", "پښتو", "ps-AF"),
         Language("sd", "Sindi", "Sindhi", "سنڌي", "sd-PK", "Write Sindhi in Arabic script."),

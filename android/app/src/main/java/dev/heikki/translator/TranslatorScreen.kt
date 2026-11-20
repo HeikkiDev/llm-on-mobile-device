@@ -301,7 +301,12 @@ private fun ConversationContent(
             }
         }
         if (Languages.spanish.code in state.voiceless) {
-            Notice("Falta la voz española en el teléfono.", "Instalar") { context.installVoices() }
+            Notice("Falta la voz española en el teléfono.", "Instalar") { context.installVoices(state.voiceEngine) }
+        }
+        state.coworker?.takeIf { it.code in state.installableVoices }?.let { coworker ->
+            Notice("Falta la voz de ${coworker.spanishName} en el teléfono.", "Instalar") {
+                context.installVoices(state.voiceEngine)
+            }
         }
         if (state.lowVolume) {
             Notice("Sube el volumen 🔊", "Vale", viewModel::dismissLowVolume)
@@ -717,7 +722,7 @@ private fun LanguageSheet(state: UiState, related: List<Language>, onSelect: (La
                 item { Text("No hay ningún idioma con ese nombre", Modifier.padding(24.dp)) }
             }
             item {
-                TextButton(onClick = { context.installVoices() }, modifier = Modifier.padding(16.dp).heightIn(min = 48.dp)) {
+                TextButton(onClick = { context.installVoices(state.voiceEngine) }, modifier = Modifier.padding(16.dp).heightIn(min = 48.dp)) {
                     Text("🔇 = sin voz en este teléfono. Instalar voces")
                 }
             }
@@ -750,11 +755,15 @@ private fun LanguageRow(language: Language, selected: Boolean, voiceless: Boolea
     )
 }
 
-/** Opens the system TTS engine's voice installer; the system does the download, not this app. */
-private fun android.content.Context.installVoices() {
-    runCatching {
-        startActivity(Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    }
+/**
+ * Opens the voice installer of [engine] (the one Speaker uses), so phones with two engines don't show a
+ * chooser or the wrong one; the system does the download, not this app. Falls back to the TTS settings.
+ */
+private fun android.content.Context.installVoices(engine: String?) {
+    val install = Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { startActivity(if (engine != null) Intent(install).setPackage(engine) else install) }
+        .recoverCatching { startActivity(install) }
+        .recoverCatching { startActivity(Intent("com.android.settings.TTS_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
