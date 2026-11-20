@@ -25,4 +25,5 @@ jobs:
             -project Translator.xcodeproj \
             -scheme Translator \
             -destination "platform=iOS Simulator,id=$SIM_UDID" \
+            -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO
