@@ -13,8 +13,14 @@ final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
         synthesizer.delegate = self
     }
 
-    /// The best installed voice for `language`, or nil. Read fresh each time: voices can be added in Settings.
+    /// The best installed voice for `language`, else for its `fallbackVoice` language (Urdu for
+    /// Punjabi-Pakistan), or nil. Read fresh each time: voices can be added in Settings.
     func voice(for language: Language, among voices: [AVSpeechSynthesisVoice] = AVSpeechSynthesisVoice.speechVoices()) -> AVSpeechSynthesisVoice? {
+        if let own = ownVoice(for: language, among: voices) { return own }
+        return Languages.byCode(language.fallbackVoice).flatMap { ownVoice(for: $0, among: voices) }
+    }
+
+    private func ownVoice(for language: Language, among voices: [AVSpeechSynthesisVoice]) -> AVSpeechSynthesisVoice? {
         voices
             .filter { !$0.voiceTraits.contains(.isNoveltyVoice) }
             .compactMap { voice in language.voiceFit(voice.language).map { (voice, $0) } }

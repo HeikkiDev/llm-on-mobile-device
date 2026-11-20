@@ -34,4 +34,19 @@ class SpeakerTest {
         assertEquals("pa-IN", pick("pa", Fake("pa-PK"), Fake("pa-IN"))?.tag)
         assertEquals("pa-PK", pick("pa-Arab", Fake("pa-PK"), Fake("pa-IN"))?.tag)
     }
+
+    private fun pickWithFallback(code: String, vararg voices: Fake): Fake? =
+        withFallback(Languages.byCode(code)!!) { pickFor(it, *voices) }
+
+    private fun pickFor(language: Language, vararg voices: Fake): Fake? =
+        bestVoice(language, voices.toList(), { Locale.forLanguageTag(it.tag) }, { it.quality })
+
+    @Test
+    fun punjabiPakistanFallsBackToUrduVoice() {
+        assertEquals("ur-PK", pickWithFallback("pa-Arab", Fake("pa-IN"), Fake("ur-PK"))?.tag)
+        assertEquals("pa-PK", pickWithFallback("pa-Arab", Fake("pa-PK"), Fake("ur-PK"))?.tag) // own voice wins
+        assertNull(pickWithFallback("pa-Arab", Fake("pa-IN"))) // never the Gurmukhi voice
+        assertNull(pickWithFallback("pa", Fake("ur-PK"))) // Indian Punjabi has no fallback
+        assertNull(pickWithFallback("ps", Fake("ur-PK")))
+    }
 }
