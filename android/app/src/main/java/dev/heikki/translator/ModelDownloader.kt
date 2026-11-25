@@ -2,13 +2,15 @@ package dev.heikki.translator
 
 import android.content.Context
 import android.net.ConnectivityManager
-import android.os.SystemClock
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -28,6 +30,7 @@ private const val PROGRESS_INTERVAL_MS = 500L
 
 const val NO_CONNECTION = "No connection. Check your internet and try again."
 const val CORRUPTED = "Download corrupted, try again."
+const val STORAGE_ERROR = "Could not write the model to storage. Free up space and try again."
 
 class DownloadException(message: String) : Exception(message)
 
@@ -48,6 +51,37 @@ fun requiredFreeBytes(downloadedBytes: Long): Long =
 fun httpErrorMessage(code: Int): String = when (code) {
     403, 404, 410, 429, in 500..599 -> "Model server unavailable, try later (HTTP $code)."
     else -> "Download failed (HTTP $code)."
+}
+
+/**
+ * Copies [input] to [output] and returns the total bytes done (starting from [start]).
+ * A failed read means the network dropped; a failed write means the device storage did.
+ */
+suspend fun copyChunks(input: InputStream, output: OutputStream, start: Long, onProgress: (Long) -> Unit): Long {
+    val buffer = ByteArray(BUFFER_BYTES)
+    var done = start
+    var lastReport = 0L
+    while (done <= MODEL_SIZE_BYTES) {
+        currentCoroutineContext().ensureActive()
+        val read = try {
+            input.read(buffer)
+        } catch (e: IOException) {
+            throw DownloadException(NO_CONNECTION)
+        }
+        if (read < 0) break
+        try {
+            output.write(buffer, 0, read)
+        } catch (e: IOException) {
+            throw DownloadException(STORAGE_ERROR)
+        }
+        done += read
+        val now = System.nanoTime() / 1_000_000
+        if (now - lastReport >= PROGRESS_INTERVAL_MS) {
+            onProgress(done)
+            lastReport = now
+        }
+    }
+    return done
 }
 
 fun formatGb(bytes: Long): String = String.format(Locale.US, "%.1f GB", bytes / 1e9)
@@ -100,22 +134,12 @@ class ModelDownloader(dir: File) {
                 if (!append) done = 0
 
                 connection.inputStream.use { input ->
-                    FileOutputStream(partFile, append).use { output ->
-                        val buffer = ByteArray(BUFFER_BYTES)
-                        var lastReport = 0L
-                        while (done <= MODEL_SIZE_BYTES) {
-                            ensureActive()
-                            val read = input.read(buffer)
-                            if (read < 0) break
-                            output.write(buffer, 0, read)
-                            done += read
-                            val now = SystemClock.elapsedRealtime()
-                            if (now - lastReport >= PROGRESS_INTERVAL_MS) {
-                                onProgress(done)
-                                lastReport = now
-                            }
-                        }
+                    val output = try {
+                        FileOutputStream(partFile, append)
+                    } catch (e: IOException) {
+                        throw DownloadException(STORAGE_ERROR)
                     }
+                    output.use { copyChunks(input, it, done, onProgress) }
                 }
             } catch (e: IOException) {
                 throw DownloadException(NO_CONNECTION)

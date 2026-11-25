@@ -1,11 +1,17 @@
 package dev.heikki.translator
 
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.io.RandomAccessFile
 
 class ModelDownloaderTest {
@@ -39,5 +45,35 @@ class ModelDownloaderTest {
         assertFalse(downloader.isModelValid())
         RandomAccessFile(downloader.modelFile, "rw").use { it.setLength(MODEL_SIZE_BYTES) } // sparse, no disk cost
         assertTrue(downloader.isModelValid())
+    }
+
+    private fun copyFailure(input: InputStream, output: OutputStream): String? =
+        try {
+            runBlocking { copyChunks(input, output, 0) {} }
+            null
+        } catch (e: DownloadException) {
+            e.message
+        }
+
+    @Test
+    fun copyReportsBytesDone() {
+        val done = runBlocking { copyChunks(ByteArrayInputStream(ByteArray(3_000_000)), ByteArrayOutputStream(), 10) {} }
+        assertEquals(3_000_010L, done)
+    }
+
+    @Test
+    fun failedReadMeansNoConnection() {
+        val dropped = object : InputStream() {
+            override fun read(): Int = throw IOException("connection reset")
+        }
+        assertEquals(NO_CONNECTION, copyFailure(dropped, ByteArrayOutputStream()))
+    }
+
+    @Test
+    fun failedWriteMeansStorageNotNetwork() {
+        val full = object : OutputStream() {
+            override fun write(b: Int) = throw IOException("No space left on device")
+        }
+        assertEquals(STORAGE_ERROR, copyFailure(ByteArrayInputStream(ByteArray(10)), full))
     }
 }

@@ -30,7 +30,7 @@ enum DownloadError: LocalizedError, Equatable {
         case .notEnoughSpace(let needed): "Not enough space. Free up about \(formatGB(needed)) and try again."
         case .http(let code): httpErrorMessage(code)
         case .corrupted: "Download corrupted, try again."
-        case .saveFailed: "Could not save the model. Try again."
+        case .saveFailed: "Could not save the model. Free up space and try again."
         }
     }
 }
@@ -39,6 +39,21 @@ func httpErrorMessage(_ code: Int) -> String {
     switch code {
     case 403, 404, 410, 429, 500...599: "Model server unavailable, try later (HTTP \(code))."
     default: "Download failed (HTTP \(code))."
+    }
+}
+
+/// Bytes that must be free before downloading; what is already on disk does not count again.
+func requiredFreeBytes(downloaded: Int64) -> Int64 {
+    max(Model.sizeBytes - downloaded, 0) + freeSpaceMarginBytes
+}
+
+/// Disk write failures are not network failures: say so instead of "No connection".
+func downloadError(for error: URLError) -> DownloadError {
+    switch error.code {
+    case .cannotWriteToFile, .cannotCreateFile, .cannotMoveFile, .cannotRemoveFile:
+        .saveFailed
+    default:
+        error.networkUnavailableReason == .expensive ? .expensiveNetwork : .noConnection
     }
 }
 
@@ -81,9 +96,9 @@ final class ModelDownloader: NSObject, URLSessionDownloadDelegate, Sendable {
         fileSize(modelURL) == Model.sizeBytes
     }
 
-    /// Bytes kept from an interrupted download (0 if none).
+    /// Bytes kept from an interrupted download (0 if none): a complete `.part`, or what the resume data covers.
     func partialBytes() -> Int64 {
-        loadResume()?.bytes ?? 0
+        fileSize(partURL) ?? loadResume()?.bytes ?? 0
     }
 
     func deleteModel() {
@@ -96,28 +111,32 @@ final class ModelDownloader: NSObject, URLSessionDownloadDelegate, Sendable {
         onProgress: @escaping @Sendable (Int64) -> Void,
         onVerifying: @escaping @Sendable () -> Void
     ) async throws {
-        let needed = Model.sizeBytes + freeSpaceMarginBytes
-        let free = (try? modelURL.deletingLastPathComponent()
-            .resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
-            .volumeAvailableCapacityForImportantUsage) ?? 0
-        if free < needed { throw DownloadError.notEnoughSpace(needed) }
+        // A complete `.part` means a previous run was stopped while verifying: skip straight to verification.
+        if fileSize(partURL) != Model.sizeBytes {
+            let needed = requiredFreeBytes(downloaded: partialBytes())
+            let free = (try? modelURL.deletingLastPathComponent()
+                .resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+                .volumeAvailableCapacityForImportantUsage) ?? 0
+            if free < needed { throw DownloadError.notEnoughSpace(needed) }
 
-        let config = URLSessionConfiguration.default
-        config.allowsExpensiveNetworkAccess = allowExpensive
-        config.timeoutIntervalForRequest = 30
-        let session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
-        defer { session.finishTasksAndInvalidate() }
+            let config = URLSessionConfiguration.default
+            config.allowsExpensiveNetworkAccess = allowExpensive
+            config.timeoutIntervalForRequest = 30
+            let session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+            defer { session.finishTasksAndInvalidate() }
 
-        if let resume = loadResume() {
-            try? FileManager.default.removeItem(at: resumeURL)
-            do {
-                try await transfer(session.downloadTask(withResumeData: resume.data), onProgress)
-            } catch let error as DownloadError where error != .noConnection && error != .expensiveNetwork {
-                // Resume data can go stale (e.g. the signed CDN URL expired): restart from the pinned URL.
+            if let resume = loadResume() {
+                try? FileManager.default.removeItem(at: resumeURL)
+                do {
+                    try await transfer(session.downloadTask(withResumeData: resume.data), onProgress)
+                } catch let error as DownloadError
+                    where error != .noConnection && error != .expensiveNetwork && error != .saveFailed {
+                    // Resume data can go stale (e.g. the signed CDN URL expired): restart from the pinned URL.
+                    try await transfer(session.downloadTask(with: Model.url), onProgress)
+                }
+            } else {
                 try await transfer(session.downloadTask(with: Model.url), onProgress)
             }
-        } else {
-            try await transfer(session.downloadTask(with: Model.url), onProgress)
         }
 
         if Model.verifySHA256 {
@@ -211,10 +230,8 @@ final class ModelDownloader: NSObject, URLSessionDownloadDelegate, Sendable {
         if let data = error.downloadTaskResumeData { saveResume(data, bytes: bytes) }
         if error.code == .cancelled {
             continuation.resume(throwing: CancellationError())
-        } else if error.networkUnavailableReason == .expensive {
-            continuation.resume(throwing: DownloadError.expensiveNetwork)
         } else {
-            continuation.resume(throwing: DownloadError.noConnection)
+            continuation.resume(throwing: downloadError(for: error))
         }
     }
 }

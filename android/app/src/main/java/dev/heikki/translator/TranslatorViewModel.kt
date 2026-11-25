@@ -206,7 +206,7 @@ class TranslatorViewModel(app: Application) : AndroidViewModel(app) {
             } finally {
                 streaming = false
                 stopRequested = false
-                _state.update { it.copy(output = cleanTranslation(it.output, target), translating = false) }
+                _state.update { it.copy(output = cleanTranslation(it.output, target, text), translating = false) }
             }
         }
     }

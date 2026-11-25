@@ -161,7 +161,7 @@ final class TranslatorModel {
         error = nil
         Task {
             defer {
-                output = cleanTranslation(output, target: target)
+                output = cleanTranslation(output, target: target, source: text)
                 translating = false
                 stopRequested = false
             }

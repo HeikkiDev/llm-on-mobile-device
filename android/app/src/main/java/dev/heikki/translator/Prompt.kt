@@ -10,19 +10,27 @@ fun buildSystemInstruction(target: Language): String = """
 
 private val QUOTE_PAIRS = listOf('"' to '"', '“' to '”', '\'' to '\'', '«' to '»', '「' to '」')
 
-/** Trims, strips one leading label ("Translation:", "Spanish:") and one pair of wrapping quotes. */
-fun cleanTranslation(raw: String, target: Language): String {
+/**
+ * Trims, strips one leading label ("Translation:", "Spanish:") and one pair of wrapping quotes.
+ * Leaves text alone when the [source] had the same label or was itself quoted, and keeps quotes
+ * that also appear inside (`"Yes" or "No"`).
+ */
+fun cleanTranslation(raw: String, target: Language, source: String = ""): String {
+    val src = source.trim()
     var text = raw.trim()
     for (label in listOf("Translation", target.englishName, target.nativeName)) {
-        if (text.startsWith("$label:", ignoreCase = true)) {
-            text = text.substring(label.length + 1).trim()
+        val prefix = "$label:"
+        if (text.startsWith(prefix, ignoreCase = true)) {
+            if (!src.startsWith(prefix, ignoreCase = true)) text = text.substring(prefix.length).trim()
             break
         }
     }
     if (text.length >= 2) {
+        val sourceQuoted = src.length >= 2 && QUOTE_PAIRS.any { (open, close) -> src.first() == open && src.last() == close }
         for ((open, close) in QUOTE_PAIRS) {
             if (text.first() == open && text.last() == close) {
-                text = text.substring(1, text.length - 1).trim()
+                val inner = text.substring(1, text.length - 1)
+                if (!sourceQuoted && open !in inner && close !in inner) text = inner.trim()
                 break
             }
         }

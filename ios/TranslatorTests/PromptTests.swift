@@ -37,4 +37,21 @@ struct PromptTests {
         #expect(Languages.search("") == Languages.all)
         #expect(Languages.search("xyz").isEmpty)
     }
+
+    @Test func cleanKeepsQuotesThatAlsoAppearInside() {
+        let text = "\"Sí\" o \"No\""
+        #expect(cleanTranslation(text, target: spanish, source: "\"Yes\" or \"No\"") == text)
+        #expect(cleanTranslation(text, target: spanish) == text)
+    }
+
+    @Test func cleanKeepsQuotesTheSourceHad() {
+        #expect(cleanTranslation("\"Hola\"", target: spanish, source: "\"Hello\"") == "\"Hola\"")
+        #expect(cleanTranslation("«Hola»", target: spanish, source: "“Hello”") == "«Hola»")
+        #expect(cleanTranslation("\"Hola\"", target: spanish, source: "Hello") == "Hola")
+    }
+
+    @Test func cleanKeepsLabelTheSourceHad() {
+        #expect(cleanTranslation("Spanish: hola", target: spanish, source: "Spanish: hello") == "Spanish: hola")
+        #expect(cleanTranslation("Spanish: hola", target: spanish, source: "hello") == "hola")
+    }
 }
