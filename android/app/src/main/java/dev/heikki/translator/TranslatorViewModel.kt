@@ -101,6 +101,10 @@ data class UiState(
     val confirmLanguage: Language? = null,
     /** Codes of languages (including "es") without an offline voice on this phone. */
     val voiceless: Set<String> = emptySet(),
+    /** Package of the TTS engine Speaker uses (null = phone default); its installer adds voices. */
+    val voiceEngine: String? = null,
+    /** Codes of voiceless languages whose voice can be downloaded in the engine's settings. */
+    val installableVoices: Set<String> = emptySet(),
     val lowVolume: Boolean = false,
     /** Short notice shown once in a snackbar. */
     val message: String? = null,
@@ -502,11 +506,13 @@ class TranslatorViewModel(app: Application) : AndroidViewModel(app) {
     /** On start, on resume and before each turn: installed voices and volume may have changed. */
     fun refreshDevice() {
         speaker.reloadVoices()
-        val voiceless = (Languages.all + Languages.spanish).filterNot { speaker.hasOfflineVoice(it) }.map { it.code }.toSet()
+        val voicelessLanguages = (Languages.all + Languages.spanish).filterNot { speaker.hasOfflineVoice(it) }
+        val voiceless = voicelessLanguages.map { it.code }.toSet()
+        val installable = voicelessLanguages.filter { speaker.canInstallVoice(it) }.map { it.code }.toSet()
         val audio = getApplication<Application>().getSystemService(AudioManager::class.java)
         val volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() /
             audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-        _state.update { it.copy(voiceless = voiceless, lowVolume = volume < LOW_VOLUME) }
+        _state.update { it.copy(voiceless = voiceless, voiceEngine = speaker.engine, installableVoices = installable, lowVolume = volume < LOW_VOLUME) }
     }
 
     /** Frees ~2 GB under memory pressure; the next turn reloads the engine lazily. */

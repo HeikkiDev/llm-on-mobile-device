@@ -36,6 +36,12 @@ struct LanguagesTests {
         #expect(Languages.related(Languages.byCode("en")!).map(\.code) == ["en"])
     }
 
+    @Test func onlyPunjabiPakistanFallsBackToUrduVoice() {
+        #expect(Languages.byCode("pa-Arab")!.fallbackVoice == "ur")
+        let others = (Languages.all + [Languages.spanish]).filter { $0.code != "pa-Arab" }
+        #expect(others.allSatisfy { $0.fallbackVoice == nil })
+    }
+
     @Test func voiceFitPrefersSameRegion() {
         let urdu = Languages.byCode("ur")!
         #expect(urdu.voiceFit("ur-PK") == 1)
