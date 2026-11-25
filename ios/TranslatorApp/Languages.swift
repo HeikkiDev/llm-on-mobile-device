@@ -2,6 +2,7 @@ import Foundation
 
 /// `englishName` is what the prompts use. `scriptHint` is appended to prompts when the language has
 /// more than one common script. `voiceLocale` is requested from the system voices; nil = no voice.
+/// `fallbackVoice` is the code of a language whose voice reads this one's text when it has no voice of its own.
 struct Language: Hashable, Identifiable, Sendable {
     let code: String
     let spanishName: String
@@ -9,15 +10,17 @@ struct Language: Hashable, Identifiable, Sendable {
     let nativeName: String
     let voiceLocale: String?
     let scriptHint: String?
+    let fallbackVoice: String?
 
     init(_ code: String, _ spanishName: String, _ englishName: String, _ nativeName: String,
-         _ voiceLocale: String?, _ scriptHint: String? = nil) {
+         _ voiceLocale: String?, _ scriptHint: String? = nil, fallbackVoice: String? = nil) {
         self.code = code
         self.spanishName = spanishName
         self.englishName = englishName
         self.nativeName = nativeName
         self.voiceLocale = voiceLocale
         self.scriptHint = scriptHint
+        self.fallbackVoice = fallbackVoice
     }
 
     var id: String { code }
@@ -48,7 +51,9 @@ enum Languages {
     static let all: [Language] = [
         Language("ur", "Urdu", "Urdu", "اردو", "ur-PK"),
         Language("pa-Arab", "Panyabí (Pakistán)", "Punjabi", "پنجابی", "pa-PK",
-                 "Write Punjabi in Shahmukhi (Perso-Arabic) script, as used in Pakistan."),
+                 "Write Punjabi in Shahmukhi (Perso-Arabic) script, as used in Pakistan.",
+                 // No pa-PK voice exists; the Urdu voice reads Shahmukhi (same script) with an Urdu accent.
+                 fallbackVoice: "ur"),
         Language("pa", "Panyabí (India)", "Punjabi", "ਪੰਜਾਬੀ", "pa-IN", "Write Punjabi in Gurmukhi script."),
         Language("ps", "Pastún", "Pashto", "پښتو", "ps-AF"),
         Language("sd", "Sindi", "Sindhi", "سنڌي", "sd-PK", "Write Sindhi in Arabic script."),
