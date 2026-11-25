@@ -7,6 +7,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 
+/**
+ * Since API 34 the system no longer sends the TRIM_MEMORY_RUNNING_* levels, so the engine would never be
+ * released on current phones. TRIM_MEMORY_BACKGROUND and above still arrive; RUNNING_CRITICAL is kept for older ones.
+ */
+@Suppress("DEPRECATION")
+fun shouldReleaseOnTrim(level: Int): Boolean =
+    level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL || level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND
+
 class MainActivity : ComponentActivity() {
     private val viewModel: TranslatorViewModel by viewModels()
 
@@ -25,7 +33,7 @@ class MainActivity : ComponentActivity() {
     @Suppress("DEPRECATION")
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) viewModel.releaseIfIdle()
+        if (shouldReleaseOnTrim(level)) viewModel.releaseIfIdle()
     }
 
     @Deprecated("Deprecated in Java")
