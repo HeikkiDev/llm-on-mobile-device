@@ -156,10 +156,12 @@ class TranslatorViewModel(app: Application) : AndroidViewModel(app) {
 
     fun download() {
         if (downloadJob?.isActive == true) return
-        when (networkKind(getApplication())) {
-            NetworkKind.None -> return setStatus(ModelStatus.Error(NO_CONNECTION))
-            NetworkKind.Metered -> if (!cellularAccepted) return setStatus(ModelStatus.NeedsCellularConsent)
-            NetworkKind.Unmetered -> Unit
+        if (needsNetwork(downloader.partialBytes())) {
+            when (networkKind(getApplication())) {
+                NetworkKind.None -> return setStatus(ModelStatus.Error(NO_CONNECTION))
+                NetworkKind.Metered -> if (!cellularAccepted) return setStatus(ModelStatus.NeedsCellularConsent)
+                NetworkKind.Unmetered -> Unit
+            }
         }
         setStatus(ModelStatus.Downloading(downloader.partialBytes(), MODEL_SIZE_BYTES))
         downloadJob = viewModelScope.launch {

@@ -81,4 +81,21 @@ struct PromptTests {
         #expect(!typedByCoworker(input: "¿Dónde está el cemento?", output: "سیمنٹ کہاں ہے؟"))
         #expect(!typedByCoworker(input: "ok", output: "ok"))
     }
+
+    @Test func cleanKeepsQuotesThatAlsoAppearInside() {
+        let text = "\"Sí\" o \"No\""
+        #expect(cleanTranslation(text, target: spanish, source: "\"Yes\" or \"No\"") == text)
+        #expect(cleanTranslation(text, target: spanish) == text)
+    }
+
+    @Test func cleanKeepsQuotesTheSourceHad() {
+        #expect(cleanTranslation("\"Hola\"", target: spanish, source: "\"Hello\"") == "\"Hola\"")
+        #expect(cleanTranslation("«Hola»", target: spanish, source: "“Hello”") == "«Hola»")
+        #expect(cleanTranslation("\"Hola\"", target: spanish, source: "Hello") == "Hola")
+    }
+
+    @Test func cleanKeepsLabelTheSourceHad() {
+        #expect(cleanTranslation("Spanish: hola", target: spanish, source: "Spanish: hello") == "Spanish: hola")
+        #expect(cleanTranslation("Spanish: hola", target: spanish, source: "hello") == "hola")
+    }
 }
