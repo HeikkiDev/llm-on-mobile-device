@@ -72,13 +72,22 @@ struct ContentView: View {
 private struct DownloadView: View {
     @Environment(TranslatorModel.self) private var model
 
+    /// What is already on disk does not need free space again.
+    private var downloaded: Int64 {
+        switch model.status {
+        case .missing(let partialBytes): partialBytes
+        case .downloading(let bytes): bytes
+        default: 0
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Descarga el modelo de idiomas").font(.title2.bold())
                     .accessibilityAddTraits(.isHeader)
                 Text("Para traducir sin internet, la app necesita descargar un modelo de idiomas una sola vez (\(formatGB(Model.sizeBytes))). Después funciona sin conexión.")
-                Text("Mejor con wifi. Espacio libre necesario: unos \(formatGB(Model.sizeBytes + 200_000_000)). Se descarga de Hugging Face.")
+                Text("Mejor con wifi. Espacio libre necesario: unos \(formatGB(requiredFreeBytes(downloaded: downloaded))). Se descarga de Hugging Face.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 if model.lowRam {

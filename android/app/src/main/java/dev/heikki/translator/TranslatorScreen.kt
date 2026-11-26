@@ -782,8 +782,13 @@ private fun DownloadContent(state: UiState, viewModel: TranslatorViewModel) {
                 "(${formatGb(MODEL_SIZE_BYTES)}). Después funciona sin conexión.",
             style = MaterialTheme.typography.bodyLarge,
         )
+        val downloaded = when (status) {
+            is ModelStatus.Missing -> status.partialBytes
+            is ModelStatus.Downloading -> status.bytes
+            else -> 0L
+        }
         Text(
-            "Mejor con wifi. Espacio libre necesario: unos ${formatGb(requiredFreeBytes(0))}. " +
+            "Mejor con wifi. Espacio libre necesario: unos ${formatGb(requiredFreeBytes(downloaded))}. " +
                 "Se descarga de Hugging Face.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
