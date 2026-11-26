@@ -30,6 +30,13 @@ class ModelDownloaderTest {
     }
 
     @Test
+    fun completePartNeedsNoNetwork() {
+        assertTrue(needsNetwork(0))
+        assertTrue(needsNetwork(MODEL_SIZE_BYTES - 1))
+        assertFalse(needsNetwork(MODEL_SIZE_BYTES))
+    }
+
+    @Test
     fun serverErrorsAskToTryLater() {
         assertEquals("El servidor del modelo no está disponible. Prueba más tarde (HTTP 503).", httpErrorMessage(503))
         assertEquals("La descarga ha fallado (HTTP 400).", httpErrorMessage(400))

@@ -45,6 +45,9 @@ fun responseAction(code: Int): ResponseAction = when (code) {
     else -> ResponseAction.Fail
 }
 
+/** A complete `.part` (stopped while verifying) only needs verification, which works offline. */
+fun needsNetwork(downloadedBytes: Long): Boolean = downloadedBytes < MODEL_SIZE_BYTES
+
 fun requiredFreeBytes(downloadedBytes: Long): Long =
     MODEL_SIZE_BYTES - downloadedBytes + FREE_SPACE_MARGIN_BYTES
 
