@@ -46,8 +46,10 @@ Start with `scripts/ui-check.py ios|android [scenario ...|all]` (scenarios: `tra
 - Boot / relaunch: `xcrun simctl boot <UDID> && xcrun simctl bootstatus <UDID> -b`, `xcrun simctl launch|terminate|uninstall <UDID> dev.heikki.walter`.
 - Voice input on emulator/simulator: start the emulator with `-allow-host-audio`, then run `$ADB emu avd hostmicon` after boot (otherwise the app records silence); the Simulator uses the Mac mic. Play speech on the Mac with `say -v Mónica "…"` while the app listens. The emulator mic bridge drops audio, so it is for smoke tests only; judge recognition quality on a phone.
 
-**CI:** two workflows in `.github/workflows/` (`android.yml`, `ios.yml`) only build and run tests (SPEC.md §3.1). No release, signing or distribution steps. Keep them green.
+**CI:** two workflows in `.github/workflows/` (`android.yml`, `ios.yml`) only run `scripts/check.sh` (build + unit tests, SPEC.md §3.1). No release, signing or distribution steps. Keep them green.
 
-**Done means:** builds without the model present, tests pass locally and in CI, network-scope and airplane-mode checks in SPEC.md §8–§9 pass.
+**The one command:** `scripts/check.sh [android|ios|all]` builds and runs the unit tests without the model. CI runs exactly this, so run it before claiming a task done. It does not cover the emulator/simulator and airplane-mode checks; use `scripts/ui-check.py` (above) for those.
+
+**Done means:** `scripts/check.sh` passes locally and in CI (builds without the model present), network-scope and airplane-mode checks in SPEC.md §8–§9 pass.
 
 **No proof, not done.** A change is not done, and a PR is not ready, until its description shows evidence that it works, using `.github/pull_request_template.md`: CI green, the `summary.md` of `scripts/ui-check.py` on both platforms for any change the app's behaviour can show, plus screenshots or logs for every manual check, each saying what was done and what was seen. Anything not verified is listed as such, with the reason; never tick a box you did not check. "Tests pass" alone is not proof of a UI, download, engine or platform-behaviour change.

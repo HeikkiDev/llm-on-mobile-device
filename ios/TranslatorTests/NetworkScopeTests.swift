@@ -55,4 +55,19 @@ struct DownloaderTests {
         #expect(httpErrorMessage(404).contains("HTTP 404"))
         #expect(httpErrorMessage(400) == "La descarga ha fallado (HTTP 400).")
     }
+
+    @Test func freeSpaceCountsOnlyWhatIsLeftToDownload() {
+        #expect(requiredFreeBytes(downloaded: 0) == Model.sizeBytes + 200_000_000)
+        #expect(requiredFreeBytes(downloaded: Model.sizeBytes) == 200_000_000)
+        #expect(requiredFreeBytes(downloaded: Model.sizeBytes * 2) == 200_000_000)
+    }
+
+    @Test func diskFailuresAreNotReportedAsNoConnection() {
+        #expect(downloadError(for: URLError(.cannotWriteToFile)) == .saveFailed)
+        #expect(downloadError(for: URLError(.notConnectedToInternet)) == .noConnection)
+        let expensive = URLError(.notConnectedToInternet, userInfo: [
+            NSURLErrorNetworkUnavailableReasonKey: URLError.NetworkUnavailableReason.expensive.rawValue,
+        ])
+        #expect(downloadError(for: expensive) == .expensiveNetwork)
+    }
 }

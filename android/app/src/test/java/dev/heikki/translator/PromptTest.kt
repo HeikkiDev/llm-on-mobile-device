@@ -92,4 +92,24 @@ class PromptTest {
         assertFalse(typedByCoworker("¿Dónde está el cemento?", "سیمنٹ کہاں ہے؟"))
         assertFalse(typedByCoworker("ok", "ok"))
     }
+
+    @Test
+    fun cleanKeepsQuotesThatAlsoAppearInside() {
+        val text = "\"Sí\" o \"No\""
+        assertEquals(text, cleanTranslation(text, spanish, "\"Yes\" or \"No\""))
+        assertEquals(text, cleanTranslation(text, spanish))
+    }
+
+    @Test
+    fun cleanKeepsQuotesTheSourceHad() {
+        assertEquals("\"Hola\"", cleanTranslation("\"Hola\"", spanish, "\"Hello\""))
+        assertEquals("«Hola»", cleanTranslation("«Hola»", spanish, "“Hello”"))
+        assertEquals("Hola", cleanTranslation("\"Hola\"", spanish, "Hello"))
+    }
+
+    @Test
+    fun cleanKeepsLabelTheSourceHad() {
+        assertEquals("Spanish: hola", cleanTranslation("Spanish: hola", spanish, "Spanish: hello"))
+        assertEquals("hola", cleanTranslation("Spanish: hola", spanish, "hello"))
+    }
 }
