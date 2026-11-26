@@ -18,3 +18,6 @@ captures/
 # Xcode
 xcuserdata/
 DerivedData/
+
+# UI check evidence (scripts/ui-check.py); attach to the PR instead
+evidence/
