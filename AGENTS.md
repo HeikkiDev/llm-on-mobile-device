@@ -44,6 +44,8 @@ Drive the real app UI, read the screen from the accessibility/UI tree (take coor
 - Boot / relaunch: `xcrun simctl boot <UDID> && xcrun simctl bootstatus <UDID> -b`, `xcrun simctl launch|terminate|uninstall <UDID> dev.heikki.walter`.
 - Voice input on emulator/simulator: start the emulator with `-allow-host-audio`, then run `$ADB emu avd hostmicon` after boot (otherwise the app records silence); the Simulator uses the Mac mic. Play speech on the Mac with `say -v Mónica "…"` while the app listens. The emulator mic bridge drops audio, so it is for smoke tests only; judge recognition quality on a phone.
 
-**CI:** two workflows in `.github/workflows/` (`android.yml`, `ios.yml`) only build and run tests (SPEC.md §3.1). No release, signing or distribution steps. Keep them green.
+**CI:** two workflows in `.github/workflows/` (`android.yml`, `ios.yml`) only run `scripts/check.sh` (build + unit tests, SPEC.md §3.1). No release, signing or distribution steps. Keep them green.
 
-**Done means:** builds without the model present, tests pass locally and in CI, network-scope and airplane-mode checks in SPEC.md §8–§9 pass.
+**The one command:** `scripts/check.sh [android|ios|all]` builds and runs the unit tests without the model. CI runs exactly this, so run it before claiming a task done. It does not cover the emulator/simulator and airplane-mode checks below; do those by hand.
+
+**Done means:** `scripts/check.sh` passes locally and in CI (builds without the model present), network-scope and airplane-mode checks in SPEC.md §8–§9 pass.
