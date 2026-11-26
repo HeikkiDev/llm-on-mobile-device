@@ -27,7 +27,7 @@ App/bundle ID: `dev.heikki.walter` (Android code package stays `dev.heikki.trans
 
 Drive the real app UI, read the screen from the accessibility/UI tree (take coordinates from it, never guess them from a screenshot), and take screenshots as evidence. Uninstalling the app deletes the downloaded model; the next launch downloads it again through the app.
 
-Start with `scripts/ui-check.py ios|android [scenario ...]` (builds, installs, drives the app, writes screenshots, UI trees and a PASS/FAIL `summary.md` to the gitignored `evidence/`; exit code 0 only if every check passed). It needs the model already installed by the app and the partner language picked once. Add a scenario there for any flow you check by hand more than once; use the commands below for anything it does not cover yet.
+Start with `scripts/ui-check.py ios|android [scenario ...|all]` (scenarios: `translate`, `airplane`, `kill-verifying`, `cellular`, `low-space`; see its header; builds, installs, drives the app, writes screenshots, UI trees and a PASS/FAIL `summary.md` to the gitignored `evidence/`; exit code 0 only if every check passed). It needs the model already installed by the app and the partner language picked once. Add a scenario there for any flow you check by hand more than once; use the commands below for anything it does not cover yet.
 
 *Android emulator* (`ADB=~/Library/Android/sdk/platform-tools/adb`; JDK from Android Studio: `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`)
 - Start: `~/Library/Android/sdk/emulator/emulator -avd <avd> -no-snapshot-save -no-boot-anim` (list AVDs with `-list-avds`), then wait until `$ADB shell getprop sys.boot_completed` is `1`. Stop with `$ADB emu kill`.
