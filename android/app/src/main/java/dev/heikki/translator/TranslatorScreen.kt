@@ -785,6 +785,7 @@ private fun DownloadContent(state: UiState, viewModel: TranslatorViewModel) {
         val downloaded = when (status) {
             is ModelStatus.Missing -> status.partialBytes
             is ModelStatus.Downloading -> status.bytes
+            ModelStatus.Verifying -> MODEL_SIZE_BYTES
             else -> 0L
         }
         Text(

@@ -77,6 +77,7 @@ private struct DownloadView: View {
         switch model.status {
         case .missing(let partialBytes): partialBytes
         case .downloading(let bytes): bytes
+        case .verifying: Model.sizeBytes
         default: 0
         }
     }
